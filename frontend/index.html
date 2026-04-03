@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HazardPulse</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="container">
+    <header id="header">
+      <div id="header-left">
+        <div id="header-title">
+          <h1>HazardPulse</h1>
+          <span id="last-update"></span>
+        </div>
+        <span class="header-sep"></span>
+        <div id="status">
+          <div id="status-toggle" onclick="toggleStatusPanel()">
+            <span id="alert-count">Loading...</span>
+            <span class="status-arrow">&#9660;</span>
+          </div>
+          <div id="status-panel" class="hidden">
+            <input type="text" id="status-search" placeholder="Filter categories..." autocomplete="off">
+            <div id="status-list"></div>
+          </div>
+        </div>
+        <span class="header-sep"></span>
+        <div id="weather-wrap">
+          <button id="weather-btn" onclick="toggleWeather()" title="Local weather">--°F</button>
+          <div id="weather-panel" class="weather-panel hidden">
+            <div id="weather-content"></div>
+          </div>
+        </div>
+      </div>
+      <div id="header-controls">
+        <button id="refresh-btn" onclick="refreshAlerts()">&#x21bb; Refresh</button>
+        <button onclick="centerOnUS()">&#x2316; Center US</button>
+        <button id="toggle-panel-btn" onclick="togglePanel()">&#x2630; Layers</button>
+      </div>
+    </header>
+
+    <div id="map"></div>
+
+    <!-- Layer panel -->
+    <div id="legend" autocomplete="off">
+      <div class="legend-title-row">
+        <h3>Layers</h3>
+        <button class="panel-close-btn" onclick="togglePanel()" title="Minimize panel">&#x2715;</button>
+      </div>
+
+      <!-- Time Filter -->
+      <div class="time-filter">
+        <div class="time-filter-header">
+          <span class="group-label">Time Filter</span>
+        </div>
+        <div class="time-slider-row">
+          <span class="time-bound">Oldest</span>
+          <input type="range" id="time-slider" aria-label="Time filter"
+                 oninput="onTimeSliderChange(this.value)">
+          <span class="time-bound">Now</span>
+        </div>
+        <div id="time-label" class="time-label-text">Showing all events</div>
+      </div>
+
+      <!-- Presets -->
+      <div class="preset-bar-label">Quick Views</div>
+      <div class="preset-bar">
+        <button onclick="applyPreset('all')" title="Show all layers">&#x25C9; All</button>
+        <button onclick="applyPreset('critical')" title="Critical events only">&#x26A0; Critical</button>
+        <button onclick="applyPreset('weather')" title="Weather + tropical">&#x26C8; Weather</button>
+        <button onclick="applyPreset('seismic')" title="Earthquakes + tsunami">&#x25CE; Seismic</button>
+        <button onclick="applyPreset('fire')" title="Wildfires + fire warnings">&#x2668; Fire</button>
+        <button onclick="applyPreset('conflict')" title="Violence + unrest">&#x2694; Conflict</button>
+      </div>
+
+      <!-- Weather Alerts -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('weather')">
+          <input type="checkbox" checked data-group="weather" onclick="event.stopPropagation(); toggleGroup('weather')">
+          <span class="collapse-arrow" data-group="weather">&#9660;</span>
+          <span class="group-label">Weather Alerts</span>
+          <span class="group-count" data-count="weather"></span>
+        </div>
+        <div class="legend-body" data-group="weather">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tornado Warning'); updateGroupCheckbox('weather')" data-type="Tornado Warning"><span class="legend-color" style="background:#0D47A1;"></span>Tornado Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tornado Watch'); updateGroupCheckbox('weather')" data-type="Tornado Watch"><span class="legend-color legend-dashed" style="border-color:#1565C0;"></span>Tornado Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tornado Report'); updateGroupCheckbox('weather')" data-type="Tornado Report"><span class="legend-color" style="background:#0D47A1;"></span>Tornado Reports (NWS)</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Severe Thunderstorm Warning'); updateGroupCheckbox('weather')" data-type="Severe Thunderstorm Warning"><span class="legend-color" style="background:#1976D2;"></span>Thunderstorm Warn</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Severe Thunderstorm Watch'); updateGroupCheckbox('weather')" data-type="Severe Thunderstorm Watch"><span class="legend-color legend-dashed" style="border-color:#42A5F5;"></span>Thunderstorm Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Flood Warning'); updateGroupCheckbox('weather')" data-type="Flood Warning"><span class="legend-color" style="background:#1A237E;"></span>Flood Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Flood Watch'); updateGroupCheckbox('weather')" data-type="Flood Watch"><span class="legend-color legend-dashed" style="border-color:#3949AB;"></span>Flood Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Special Weather Statement'); updateGroupCheckbox('weather')" data-type="Special Weather Statement"><span class="legend-color legend-dashed" style="border-color:#546E7A;"></span>Special Weather</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Winter Weather Advisory'); updateGroupCheckbox('weather')" data-type="Winter Weather Advisory"><span class="legend-color legend-dashed" style="border-color:#78909C;"></span>Winter Weather</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Wind Advisory'); updateGroupCheckbox('weather')" data-type="Wind Advisory"><span class="legend-color legend-dashed" style="border-color:#607D8B;"></span>Wind Advisory</label>
+        </div>
+      </div>
+
+      <!-- Hurricanes -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('tropical')">
+          <input type="checkbox" checked data-group="tropical" onclick="event.stopPropagation(); toggleGroup('tropical')">
+          <span class="collapse-arrow" data-group="tropical">&#9660;</span>
+          <span class="group-label">Hurricanes / Tropical</span>
+          <span class="group-count" data-count="tropical"></span>
+        </div>
+        <div class="legend-body" data-group="tropical">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Hurricane Warning'); updateGroupCheckbox('tropical')" data-type="Hurricane Warning"><span class="legend-color" style="background:#006064;"></span>Hurricane Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Hurricane Watch'); updateGroupCheckbox('tropical')" data-type="Hurricane Watch"><span class="legend-color legend-dashed" style="border-color:#00838F;"></span>Hurricane Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tropical Storm Warning'); updateGroupCheckbox('tropical')" data-type="Tropical Storm Warning"><span class="legend-color" style="background:#0097A7;"></span>Tropical Storm Warn</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tropical Storm Watch'); updateGroupCheckbox('tropical')" data-type="Tropical Storm Watch"><span class="legend-color legend-dashed" style="border-color:#26C6DA;"></span>Tropical Storm Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Storm Surge Warning'); updateGroupCheckbox('tropical')" data-type="Storm Surge Warning"><span class="legend-color" style="background:#004D40;"></span>Storm Surge Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Storm Surge Watch'); updateGroupCheckbox('tropical')" data-type="Storm Surge Watch"><span class="legend-color legend-dashed" style="border-color:#00897B;"></span>Storm Surge Watch</label>
+          <div class="legend-hint">Active during hurricane season (Jun-Nov)</div>
+        </div>
+      </div>
+
+      <!-- Earthquakes -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('earthquake')">
+          <input type="checkbox" checked data-group="earthquake" onclick="event.stopPropagation(); toggleGroup('earthquake')">
+          <span class="collapse-arrow" data-group="earthquake">&#9660;</span>
+          <span class="group-label">Earthquakes / Tsunami</span>
+          <span class="group-count" data-count="earthquake"></span>
+        </div>
+        <div class="legend-body" data-group="earthquake">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Earthquake'); updateGroupCheckbox('earthquake')" data-type="Earthquake"><span class="legend-color" style="background:#6D4C41;border-radius:50%;"></span>Earthquakes (USGS)</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tsunami Warning'); updateGroupCheckbox('earthquake')" data-type="Tsunami Warning"><span class="legend-color" style="background:#01579B;"></span>Tsunami Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tsunami Watch'); updateGroupCheckbox('earthquake')" data-type="Tsunami Watch"><span class="legend-color legend-dashed" style="border-color:#0277BD;"></span>Tsunami Watch</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Tsunami Advisory'); updateGroupCheckbox('earthquake')" data-type="Tsunami Advisory"><span class="legend-color legend-dashed" style="border-color:#0288D1;"></span>Tsunami Advisory</label>
+          <div class="legend-hint">Size = magnitude. Zoom in for smaller quakes.</div>
+        </div>
+      </div>
+
+      <!-- Wildfires -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('wildfire')">
+          <input type="checkbox" checked data-group="wildfire" onclick="event.stopPropagation(); toggleGroup('wildfire')">
+          <span class="collapse-arrow" data-group="wildfire">&#9660;</span>
+          <span class="group-label">Wildfires</span>
+          <span class="group-count" data-count="wildfire"></span>
+        </div>
+        <div class="legend-body" data-group="wildfire">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Wildfire'); updateGroupCheckbox('wildfire')" data-type="Wildfire"><span class="legend-color" style="background:#FF8F00;border:2px solid #E65100;"></span>Active Fires (NASA)</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Red Flag Warning'); updateGroupCheckbox('wildfire')" data-type="Red Flag Warning"><span class="legend-color" style="background:#E65100;"></span>Red Flag Warning</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Fire Weather Watch'); updateGroupCheckbox('wildfire')" data-type="Fire Weather Watch"><span class="legend-color legend-dashed" style="border-color:#FF8F00;"></span>Fire Weather Watch</label>
+          <div class="legend-hint">Size = fire intensity. Zoom in for smaller fires.</div>
+        </div>
+      </div>
+
+      <!-- Emergency Alerts (FEMA) -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('emergency')">
+          <input type="checkbox" checked data-group="emergency" onclick="event.stopPropagation(); toggleGroup('emergency')">
+          <span class="collapse-arrow" data-group="emergency">&#9660;</span>
+          <span class="group-label">Emergency Alerts</span>
+          <span class="group-count" data-count="emergency"></span>
+        </div>
+        <div class="legend-body" data-group="emergency">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Official Alerts'); updateGroupCheckbox('emergency')" data-type="Official Alerts"><span class="legend-color" style="background:#D50000;"></span>Evacuations / Law Enforcement</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Missing Persons'); updateGroupCheckbox('emergency')" data-type="Missing Persons"><span class="legend-color" style="background:#FF6F00;"></span>Missing Persons / AMBER</label>
+          <div class="legend-hint">FEMA IPAWS — verified government alerts</div>
+        </div>
+      </div>
+
+      <!-- 911 Dispatch -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('dispatch')">
+          <input type="checkbox" checked data-group="dispatch" onclick="event.stopPropagation(); toggleGroup('dispatch')">
+          <span class="collapse-arrow" data-group="dispatch">&#9660;</span>
+          <span class="group-label">911 Dispatch</span>
+          <span class="group-count" data-count="dispatch"></span>
+        </div>
+        <div class="legend-body" data-group="dispatch">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Dispatch Fire'); updateGroupCheckbox('dispatch')" data-type="Dispatch Fire"><span class="legend-color" style="background:#FF6D00;"></span>Structure Fires</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Dispatch Violence'); updateGroupCheckbox('dispatch')" data-type="Dispatch Violence"><span class="legend-color" style="background:#D500F9;"></span>Violent Crimes</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Dispatch Accident'); updateGroupCheckbox('dispatch')" data-type="Dispatch Accident"><span class="legend-color" style="background:#FFAB00;"></span>Major Accidents</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Dispatch Hazmat'); updateGroupCheckbox('dispatch')" data-type="Dispatch Hazmat"><span class="legend-color" style="background:#00E676;"></span>Hazmat</label>
+          <div class="legend-hint">City 911/CAD — Seattle, SF, Austin, Cincinnati, Indianapolis</div>
+        </div>
+      </div>
+
+      <!-- Conflict & Unrest (GDELT) -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('conflict')">
+          <input type="checkbox" checked data-group="conflict" onclick="event.stopPropagation(); toggleGroup('conflict')">
+          <span class="collapse-arrow" data-group="conflict">&#9660;</span>
+          <span class="group-label">Conflict & Unrest</span>
+          <span class="group-count" data-count="conflict"></span>
+        </div>
+        <div class="legend-body" data-group="conflict">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Protest'); updateGroupCheckbox('conflict')" data-type="Protest"><span class="legend-color" style="background:#F9A825;"></span>Protests / Demonstrations</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Armed Violence'); updateGroupCheckbox('conflict')" data-type="Armed Violence"><span class="legend-color" style="background:#B71C1C;"></span>Shootings / Explosions</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Use of Force'); updateGroupCheckbox('conflict')" data-type="Use of Force"><span class="legend-color" style="background:#C62828;"></span>Use of Force</label>
+          <div class="legend-hint">GDELT — news-derived, multi-source confirmed</div>
+        </div>
+      </div>
+
+      <!-- Satellite & Radar -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('satellite')">
+          <span class="collapse-arrow" data-group="satellite">&#9660;</span>
+          <span class="group-label">Satellite & Radar</span>
+        </div>
+        <div class="legend-body" data-group="satellite">
+          <label class="legend-item"><input type="checkbox" onchange="syncSatelliteVisibility()" data-sat="sat-ir"><span class="legend-color legend-gradient" style="background:linear-gradient(135deg,#1a1a2e,#4a4a6a);"></span>Infrared</label>
+          <label class="legend-item"><input type="checkbox" onchange="syncSatelliteVisibility()" data-sat="sat-vis"><span class="legend-color legend-gradient" style="background:linear-gradient(135deg,#666,#ddd);"></span>Visible</label>
+          <label class="legend-item"><input type="checkbox" onchange="syncSatelliteVisibility()" data-sat="sat-wv"><span class="legend-color legend-gradient" style="background:linear-gradient(135deg,#1a237e,#42a5f5);"></span>Water Vapor</label>
+          <label class="legend-item"><input type="checkbox" onchange="syncSatelliteVisibility()" data-sat="radar"><span class="legend-color legend-gradient" style="background:linear-gradient(135deg,#4CAF50,#F44336);"></span>Radar</label>
+          <div class="opacity-control">
+            <label for="sat-opacity">Opacity</label>
+            <input type="range" id="sat-opacity" min="0" max="1" step="0.05" value="0.5" aria-label="Satellite overlay opacity" oninput="setSatelliteOpacity(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <div class="legend-source">
+        NOAA/NWS | Credit: <a href="https://www.usgs.gov" target="_blank">USGS</a> |
+        NASA FIRMS | FEMA |
+        <a href="https://www.gdeltproject.org/" target="_blank">GDELT Project</a> |
+        Iowa Environmental Mesonet, Iowa State University |
+        RainViewer (optional, personal use) |
+        &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

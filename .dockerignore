@@ -1,0 +1,9 @@
+backend/node_modules
+backend/.env
+docs/
+*.md
+.gitignore
+.dockerignore
+.env.example
+.claude/
+.git/

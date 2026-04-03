@@ -1,0 +1,203 @@
+[
+  {
+    "id": "seattle_fire",
+    "city": "Seattle",
+    "state": "WA",
+    "platform": "socrata",
+    "domain": "data.seattle.gov",
+    "dataset": "kzjm-xkqj",
+    "fields": {
+      "type": "type",
+      "lat": "latitude",
+      "lon": "longitude",
+      "time": "datetime",
+      "address": "address",
+      "id": "incident_number"
+    },
+    "crisisTypes": [
+      "Brush Fire", "Brush Fire Freeway", "Encampment Fire", "RV Fire", "Rubbish Fire",
+      "MVI - Motor Vehicle Incident", "MVI Freeway",
+      "Water Rescue Response", "Fuel Spill", "Natural Gas Odor",
+      "Scenes Of Violence Aid", "Medic Response- Overdose",
+      "1RED 1 Unit", "2RED - 1 + 1", "3RED - 1 +1 + 1", "Engine Code Red"
+    ],
+    "categoryMap": {
+      "Brush Fire": "Dispatch Fire", "Brush Fire Freeway": "Dispatch Fire",
+      "Encampment Fire": "Dispatch Fire", "RV Fire": "Dispatch Fire", "Rubbish Fire": "Dispatch Fire",
+      "1RED 1 Unit": "Dispatch Fire", "2RED - 1 + 1": "Dispatch Fire",
+      "3RED - 1 +1 + 1": "Dispatch Fire", "Engine Code Red": "Dispatch Fire",
+      "MVI - Motor Vehicle Incident": "Dispatch Accident", "MVI Freeway": "Dispatch Accident",
+      "Water Rescue Response": "Dispatch Accident",
+      "Fuel Spill": "Dispatch Hazmat", "Natural Gas Odor": "Dispatch Hazmat",
+      "Scenes Of Violence Aid": "Dispatch Violence",
+      "Medic Response- Overdose": "Dispatch Violence"
+    },
+    "hoursBack": 4
+  },
+  {
+    "id": "sf_police",
+    "city": "San Francisco",
+    "state": "CA",
+    "platform": "socrata",
+    "domain": "data.sfgov.org",
+    "dataset": "gnap-fj3t",
+    "fields": {
+      "type": "call_type_final_desc",
+      "geoPoint": "intersection_point",
+      "time": "received_datetime",
+      "address": "intersection_name",
+      "id": "cad_number"
+    },
+    "priorityFilter": {
+      "field": "priority_final",
+      "values": ["A"]
+    },
+    "crisisTypes": [
+      "AGG ASSAULT / ADW", "ASSAULT / BATTERY", "ASSAULT / BATTERY DV",
+      "STABBING", "PERSON W/GUN", "PERSON W/KNIFE", "SHOT SPOTTER",
+      "STRONGARM ROBBERY", "FIGHT NO WEAPON", "FIGHT NO WEAPON DV",
+      "FIRE", "SM OUTSIDE FIRE",
+      "INJURY VEH ACCIDENT", "SUICIDE ATTEMPT",
+      "SILENT HOLDUP ALARM", "PANIC ALARM"
+    ],
+    "categoryMap": {
+      "AGG ASSAULT / ADW": "Dispatch Violence", "ASSAULT / BATTERY": "Dispatch Violence",
+      "ASSAULT / BATTERY DV": "Dispatch Violence", "STABBING": "Dispatch Violence",
+      "PERSON W/GUN": "Dispatch Violence", "PERSON W/KNIFE": "Dispatch Violence",
+      "SHOT SPOTTER": "Dispatch Violence", "STRONGARM ROBBERY": "Dispatch Violence",
+      "FIGHT NO WEAPON": "Dispatch Violence", "FIGHT NO WEAPON DV": "Dispatch Violence",
+      "FIRE": "Dispatch Fire", "SM OUTSIDE FIRE": "Dispatch Fire",
+      "INJURY VEH ACCIDENT": "Dispatch Accident",
+      "SUICIDE ATTEMPT": "Dispatch Violence",
+      "SILENT HOLDUP ALARM": "Dispatch Violence", "PANIC ALARM": "Dispatch Violence"
+    },
+    "hoursBack": 4
+  },
+  {
+    "id": "austin_fire",
+    "city": "Austin",
+    "state": "TX",
+    "platform": "socrata",
+    "domain": "datahub.austintexas.gov",
+    "dataset": "wpu4-x69d",
+    "fields": {
+      "type": "issue_reported",
+      "lat": "latitude",
+      "lon": "longitude",
+      "time": "published_date",
+      "address": "address",
+      "id": "traffic_report_id"
+    },
+    "crisisTypes": [
+      "ATTACK - Active Attack",
+      "BOX -Structure Fire", "BRUSH - Brush Fire", "ELEC - Electrical Fire",
+      "AUTO - Auto Fire", "DUMP - Dumpster Fire", "TRASH - Trash Fire", "GRASS - Small Grass Fire",
+      "HC - Hazardous Condition",
+      "RESQT - Rescue Task Force", "RESQC - Rescue Condition", "RESQV - Vehicle Rescue",
+      "Traffic Injury Pri 2", "Traffic Injury Pri 2 Rollover"
+    ],
+    "categoryMap": {
+      "ATTACK - Active Attack": "Dispatch Violence",
+      "BOX -Structure Fire": "Dispatch Fire", "BRUSH - Brush Fire": "Dispatch Fire",
+      "ELEC - Electrical Fire": "Dispatch Fire", "AUTO - Auto Fire": "Dispatch Fire",
+      "DUMP - Dumpster Fire": "Dispatch Fire", "TRASH - Trash Fire": "Dispatch Fire",
+      "GRASS - Small Grass Fire": "Dispatch Fire",
+      "HC - Hazardous Condition": "Dispatch Hazmat",
+      "RESQT - Rescue Task Force": "Dispatch Accident", "RESQC - Rescue Condition": "Dispatch Accident",
+      "RESQV - Vehicle Rescue": "Dispatch Accident",
+      "Traffic Injury Pri 2": "Dispatch Accident", "Traffic Injury Pri 2 Rollover": "Dispatch Accident"
+    },
+    "hoursBack": 4
+  },
+  {
+    "id": "cincinnati_police",
+    "city": "Cincinnati",
+    "state": "OH",
+    "platform": "socrata",
+    "domain": "data.cincinnati-oh.gov",
+    "dataset": "gexm-h6bt",
+    "fields": {
+      "type": "incident_type_id",
+      "lat": "latitude_x",
+      "lon": "longitude_x",
+      "time": "create_time_incident",
+      "address": "address_x",
+      "id": "event_number"
+    },
+    "crisisTypes": [
+      "SHOOTING", "SHOTS FIRED", "STABBING", "CUTTING",
+      "ROBBERY", "AGGRAVATED ROBBERY",
+      "ASSAULT", "AGGRAVATED ASSAULT", "ASSAULT WITH A GUN",
+      "FIRE RUN (FD)", "STRUCTURE FIRE",
+      "PERSON WITH A GUN", "PERSON WITH A KNIFE",
+      "MAJOR ACCIDENT", "ACCIDENT WITH INJURIES",
+      "HAZMAT", "BOMB THREAT", "BARRICADE/HOSTAGE"
+    ],
+    "categoryMap": {
+      "SHOOTING": "Dispatch Violence", "SHOTS FIRED": "Dispatch Violence",
+      "STABBING": "Dispatch Violence", "CUTTING": "Dispatch Violence",
+      "ROBBERY": "Dispatch Violence", "AGGRAVATED ROBBERY": "Dispatch Violence",
+      "ASSAULT": "Dispatch Violence", "AGGRAVATED ASSAULT": "Dispatch Violence",
+      "ASSAULT WITH A GUN": "Dispatch Violence",
+      "PERSON WITH A GUN": "Dispatch Violence", "PERSON WITH A KNIFE": "Dispatch Violence",
+      "BARRICADE/HOSTAGE": "Dispatch Violence",
+      "FIRE RUN (FD)": "Dispatch Fire", "STRUCTURE FIRE": "Dispatch Fire",
+      "MAJOR ACCIDENT": "Dispatch Accident", "ACCIDENT WITH INJURIES": "Dispatch Accident",
+      "HAZMAT": "Dispatch Hazmat", "BOMB THREAT": "Dispatch Hazmat"
+    },
+    "hoursBack": 24
+  },
+  {
+    "id": "indianapolis_police",
+    "city": "Indianapolis",
+    "state": "IN",
+    "platform": "arcgis",
+    "endpoint": "https://gis.indy.gov/server/rest/services/IMPD/IMPD_Public_Data/FeatureServer/0/query",
+    "sourceUrl": "https://gis.indy.gov/server/rest/services/IMPD/IMPD_Public_Data/FeatureServer/0",
+    "fields": {
+      "type": "IncidentType",
+      "lat": "Latitude",
+      "lon": "Longitude",
+      "time": "RecDateTime",
+      "address": "sAddress",
+      "id": "CAD"
+    },
+    "crisisTypes": [
+      "Shots - Shots Fired",
+      "Persht - Person Shot",
+      "Perstb - Person Stabbed",
+      "Murder - Murder / Homicide",
+      "Perarm - Person Armed W/Weapon",
+      "Disturweap - Disturbance W Weapon",
+      "Fightweap - Fight W Weapon",
+      "Robper - Robbery / Person Delayed",
+      "Robbus - Robbery / Business Delayed",
+      "Alarmhol - Alarm / Holdup",
+      "Explos - Explosion",
+      "Assistfire - Assist Fire",
+      "Accfatal - Accident / Fatal",
+      "Accsbi - Accident / Sbi/Poss Fatal",
+      "Ovrdos - Overdose",
+      "Doa - Death Invest / Natural Or Unknown Cause"
+    ],
+    "categoryMap": {
+      "Shots - Shots Fired": "Dispatch Violence",
+      "Persht - Person Shot": "Dispatch Violence",
+      "Perstb - Person Stabbed": "Dispatch Violence",
+      "Murder - Murder / Homicide": "Dispatch Violence",
+      "Perarm - Person Armed W/Weapon": "Dispatch Violence",
+      "Disturweap - Disturbance W Weapon": "Dispatch Violence",
+      "Fightweap - Fight W Weapon": "Dispatch Violence",
+      "Robper - Robbery / Person Delayed": "Dispatch Violence",
+      "Robbus - Robbery / Business Delayed": "Dispatch Violence",
+      "Alarmhol - Alarm / Holdup": "Dispatch Violence",
+      "Explos - Explosion": "Dispatch Hazmat",
+      "Assistfire - Assist Fire": "Dispatch Fire",
+      "Accfatal - Accident / Fatal": "Dispatch Accident",
+      "Accsbi - Accident / Sbi/Poss Fatal": "Dispatch Accident",
+      "Ovrdos - Overdose": "Dispatch Violence",
+      "Doa - Death Invest / Natural Or Unknown Cause": "Dispatch Violence"
+    },
+    "hoursBack": 48
+  }
+]
