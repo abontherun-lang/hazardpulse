@@ -16,14 +16,24 @@
   --text-bright: #e8f0ff;
 }
 
+html, body {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 body {
   font-family: 'Share Tech Mono', 'Courier New', monospace;
-  overflow: hidden;
   background: var(--bg-dark);
   color: var(--text);
 }
 
-#container { display: flex; flex-direction: column; height: 100vh; }
+#container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
 
 /* Header — 52px target height, 3 visual groups: brand+status | gap | actions */
 #header {
