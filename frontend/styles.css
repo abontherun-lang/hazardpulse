@@ -654,9 +654,11 @@ body {
   #header h1 { font-size: 0.85rem; letter-spacing: 1px; }
   .header-sep { display: none; }
   #header-left { gap: 0.4rem; }
-  #header-controls button { padding: 0.3rem 0.5rem; font-size: 0.65rem; }
+  #header-controls { gap: 0.3rem; }
+  #header-controls button { padding: 0.35rem 0.55rem; font-size: 0.95rem; line-height: 1; }
+  #header-controls button .btn-label { display: none; }
   .preset-bar button { font-size: 0.55rem; }
-  #status { font-size: 0.65rem; }
+  #status { display: none; }
   #last-update { display: none; }
   #weather-btn { font-size: 0.65rem; }
 }
