@@ -888,7 +888,11 @@ async function loadWeather() {
     const btn = document.getElementById('weather-btn');
     if (btn && weatherData.current) {
       const c = weatherData.current;
-      btn.textContent = `${c.tempF}°F ${c.condition}`;
+      btn.textContent = `${c.tempF}°F `;
+      const cond = document.createElement('span');
+      cond.className = 'weather-condition';
+      cond.textContent = c.condition;
+      btn.appendChild(cond);
       btn.title = `${weatherData.location} — Feels like ${c.feelsLikeF}°F, Wind ${c.windMph} mph ${c.windDir}`;
     }
   } catch (_) {}

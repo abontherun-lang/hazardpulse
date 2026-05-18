@@ -660,7 +660,8 @@ body {
   .preset-bar button { font-size: 0.55rem; }
   #status { display: none; }
   #last-update { display: none; }
-  #weather-btn { font-size: 0.65rem; }
+  #weather-btn { font-size: 0.65rem; max-width: none; }
+  #weather-btn .weather-condition { display: none; }
 }
 
 /* ===================== WEATHER PANEL ===================== */
