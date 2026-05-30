@@ -144,9 +144,24 @@
         </div>
         <div class="legend-body" data-group="wildfire">
           <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Wildfire'); updateGroupCheckbox('wildfire')" data-type="Wildfire"><span class="legend-color" style="background:#FF8F00;border:2px solid #E65100;"></span>Active Fires (NASA)</label>
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Wildfire Incident'); updateGroupCheckbox('wildfire')" data-type="Wildfire Incident"><span class="legend-color" style="background:#D84315;border-radius:50%;"></span>Named Fires (NIFC)</label>
           <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Red Flag Warning'); updateGroupCheckbox('wildfire')" data-type="Red Flag Warning"><span class="legend-color" style="background:#E65100;"></span>Red Flag Warning</label>
           <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Fire Weather Watch'); updateGroupCheckbox('wildfire')" data-type="Fire Weather Watch"><span class="legend-color legend-dashed" style="border-color:#FF8F00;"></span>Fire Weather Watch</label>
-          <div class="legend-hint">Size = fire intensity. Zoom in for smaller fires.</div>
+          <div class="legend-hint">Satellite hits filtered to high-intensity or NIFC-confirmed fires. Named fires sized by acreage.</div>
+        </div>
+      </div>
+
+      <!-- Volcanoes -->
+      <div class="legend-section">
+        <div class="legend-group-header" onclick="toggleCollapse('volcano')">
+          <input type="checkbox" checked data-group="volcano" onclick="event.stopPropagation(); toggleGroup('volcano')">
+          <span class="collapse-arrow" data-group="volcano">&#9660;</span>
+          <span class="group-label">Volcanoes</span>
+          <span class="group-count" data-count="volcano"></span>
+        </div>
+        <div class="legend-body" data-group="volcano">
+          <label class="legend-item"><input type="checkbox" checked onchange="toggleType('Volcano'); updateGroupCheckbox('volcano')" data-type="Volcano"><span class="legend-color" style="background:#E65100;border-radius:50%;"></span>Elevated Alert (USGS)</label>
+          <div class="legend-hint">US volcanoes above normal. Color = aviation code (yellow/orange/red).</div>
         </div>
       </div>
 

@@ -41,7 +41,7 @@ Built from scratch to a fully functional multi-source crisis visualization platf
 
 ## Tier 2 — High Impact Features
 
-- [ ] **NIFC wildfire incidents** — Official named fires with acreage, containment %, perimeter polygons. Free ArcGIS endpoint. Complements NASA FIRMS satellite hotspots. See [data-sources.md](data-sources.md).
+- [x] **NIFC wildfire incidents** — Official named fires with acreage + containment % (ArcGIS). Rendered as the "Named Fires" type and used to corroborate NASA FIRMS, plus a companion USGS Volcano layer. Perimeter polygons still TODO. See [data-sources.md](data-sources.md).
 - [ ] **More dispatch cities** — 34 confirmed working APIs. Add via `dispatch-feeds.json`. See [civil-incidents-research.md](civil-incidents-research.md).
 - [ ] **Mobile responsiveness** — Legend panel, popups, and controls need testing/adjustment on phones and tablets.
 - [ ] **GitHub Actions CI** — Docker build test on every push.

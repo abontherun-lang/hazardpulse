@@ -51,8 +51,21 @@ const TTL = {
   EARTHQUAKE: 86400,  // 24 hours
   FEMA: 21600,        // 6 hours
   DISPATCH: 14400,    // 4 hours
-  TORNADO: 604800     // 7 days (matches SPC weekly feed)
+  TORNADO: 604800,    // 7 days (matches SPC weekly feed)
+  NIFC: 21600,        // 6 hours (incidents poll hourly; tolerate fetch gaps)
+  VOLCANO: 7200       // 2 hours (alert levels change slowly)
 };
+
+// ===================== GEO HELPERS =====================
+
+/** Great-circle distance between two lat/lon points, in kilometers. */
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, p = Math.PI / 180;
+  const dLat = (lat2 - lat1) * p, dLon = (lon2 - lon1) * p;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * p) * Math.cos(lat2 * p) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
 // ===================== KNOWN COLUMNS =====================
 // Fields that map directly to events table columns.
@@ -426,9 +439,33 @@ async function setLastUpdate(source, count = 0) {
   `, [source, count]);
 }
 
+/**
+ * Precise US filter backstop. Removes point events for `source` that did not
+ * reverse-geocode to any US state (state_abbr IS NULL) — i.e. points the coarse
+ * isInUS() bounding box let through but that actually fall in Canada/Mexico.
+ * Run AFTER storeEvents(), which populates state_abbr via the TIGER spatial join.
+ * Returns the number of rows pruned.
+ */
+async function deleteWhereNoUSState(source) {
+  const res = await pool.query(
+    'DELETE FROM events WHERE source = $1 AND state_abbr IS NULL',
+    [source]
+  );
+  return res.rowCount || 0;
+}
+
+/** Count currently-active (unexpired) events for a source. */
+async function countActiveEvents(source) {
+  const res = await pool.query(
+    'SELECT COUNT(*)::int AS n FROM events WHERE source = $1 AND (expires_at IS NULL OR expires_at > NOW())',
+    [source]
+  );
+  return res.rows[0].n;
+}
+
 module.exports = {
-  sanitize, sanitizeUrl, isInUS,
+  sanitize, sanitizeUrl, isInUS, haversineKm,
   TTL, storeEvent, storeEvents,
   getActiveEvents, getAllActiveEvents,
-  setLastUpdate
+  setLastUpdate, deleteWhereNoUSState, countActiveEvents
 };
