@@ -44,7 +44,11 @@ const LAYER_GROUPS = {
   },
   wildfire: {
     label: 'Wildfires',
-    types: ['Wildfire', 'Red Flag Warning', 'Fire Weather Watch']
+    types: ['Wildfire', 'Wildfire Incident', 'Red Flag Warning', 'Fire Weather Watch']
+  },
+  volcano: {
+    label: 'Volcanoes',
+    types: ['Volcano']
   },
   emergency: {
     label: 'Emergency Alerts',
@@ -63,7 +67,7 @@ const LAYER_GROUPS = {
 const DATA_TYPES = Object.values(LAYER_GROUPS).flatMap(g => g.types);
 
 const CLUSTERED_TYPES = new Set([
-  'Earthquake', 'Wildfire', 'Tornado Report',
+  'Earthquake', 'Wildfire', 'Wildfire Incident', 'Tornado Report',
   'Protest', 'Armed Violence', 'Use of Force',
   'Dispatch Fire', 'Dispatch Violence', 'Dispatch Accident', 'Dispatch Hazmat'
 ]);
@@ -121,7 +125,8 @@ const DISPATCH_COLORS = {
 // Merged color map for status panel dots
 const TYPE_COLORS = { ...ALERT_COLORS, ...GDELT_COLORS, ...DISPATCH_COLORS,
   'Tornado Report': '#0D47A1', 'Earthquake': '#6D4C41', 'Earthquake Warning': '#5D4037',
-  'Wildfire': '#FF8F00', 'Official Alerts': '#D50000', 'Missing Persons': '#FF6F00'
+  'Wildfire': '#FF8F00', 'Wildfire Incident': '#D84315', 'Volcano': '#E65100',
+  'Official Alerts': '#D50000', 'Missing Persons': '#FF6F00'
 };
 
 // ===================== LAYER STATE =====================
@@ -233,6 +238,13 @@ function passesZoomFilter(feature, zoom) {
     if (zoom <= 6) return f >= 3;
     return true;
   }
+  if (source === 'NIFC') {
+    const ac = parseFloat(feature.properties.acres) || 0;
+    if (zoom <= 4) return ac >= 1000;
+    if (zoom <= 6) return ac >= 100;
+    return true;
+  }
+  if (source === 'USGS Volcano') return true; // sparse + important: always shown
   if (source === 'GDELT') {
     if (zoom <= 4) return severity === 'Extreme' || severity === 'Severe';
     if (zoom <= 6) return severity !== 'Moderate' || category !== 'Fight';
@@ -360,6 +372,8 @@ function buildLayers() {
       if (source === '911 Dispatch') buildDispatchMarker(feature);
       else if (source === 'GDELT') buildGdeltMarker(feature);
       else if (source === 'NASA FIRMS') buildFireMarker(feature);
+      else if (source === 'NIFC') buildNifcMarker(feature);
+      else if (source === 'USGS Volcano') buildVolcanoMarker(feature);
       else if (source === 'USGS') buildQuakeMarker(feature);
       else if (source === 'FEMA IPAWS') buildFemaMarker(feature);
       else if (source === 'SPC') buildTornadoReportMarker(feature);
@@ -465,6 +479,38 @@ function buildFireMarker(feature) {
     color: '#BF360C', weight: frp >= 10 ? 2 : 1, opacity
   });
   marker.bindPopup(createFirePopup(props), { maxWidth: 350, maxHeight: 400 });
+  marker.addTo(group);
+}
+
+function buildNifcMarker(feature) {
+  const props = feature.properties;
+  const group = layerGroups['Wildfire Incident'];
+  if (!group || !feature.geometry) return;
+
+  const color = safeColor(props.color, '#D84315');
+  const c = feature.geometry.coordinates;
+  const ac = parseFloat(props.acres) || 0;
+  const radius = ac >= 5000 ? 11 : ac >= 1000 ? 9 : ac >= 100 ? 7 : 5;
+
+  const marker = L.circleMarker([c[1], c[0]], {
+    radius, fillColor: color, fillOpacity: 0.85, color: '#fff', weight: 2
+  });
+  marker.bindPopup(createNifcPopup(props), { maxWidth: 350, maxHeight: 400 });
+  marker.addTo(group);
+}
+
+function buildVolcanoMarker(feature) {
+  const props = feature.properties;
+  const group = layerGroups['Volcano'];
+  if (!group || !feature.geometry) return;
+
+  const color = safeColor(props.color, '#E65100');
+  const c = feature.geometry.coordinates;
+
+  const marker = L.circleMarker([c[1], c[0]], {
+    radius: 9, fillColor: color, fillOpacity: 0.9, color: '#311B92', weight: 2.5
+  });
+  marker.bindPopup(createVolcanoPopup(props), { maxWidth: 350, maxHeight: 400 });
   marker.addTo(group);
 }
 
@@ -583,12 +629,43 @@ function createGdeltPopup(props) {
 
 function createFirePopup(props) {
   const color = safeColor(props.color, '#FF8F00');
+  const basisLabel = props.basis === 'nifc-confirmed'
+    ? 'Confirmed by NIFC incident'
+    : props.basis === 'high-intensity' ? 'High-intensity detection' : null;
   return `<div>
-    <div class="alert-badge" style="background-color: ${color};">Wildfire</div>
+    <div class="alert-badge" style="background-color: ${color};">Active Fire (NASA)</div>
     <h3>${esc(props.headline || 'Active Fire')}</h3>
     <p><strong>FRP:</strong> ${esc(props.frp || 'N/A')} MW</p>
     <p><strong>Confidence:</strong> ${esc(props.confidence || 'N/A')}</p>
+    ${basisLabel ? `<p><strong>Basis:</strong> ${basisLabel}</p>` : ''}
     ${props.description ? `<p style="font-size:0.85rem;">${esc(props.description)}</p>` : ''}
+    ${popupFooter(props)}
+  </div>`;
+}
+
+function createNifcPopup(props) {
+  const color = safeColor(props.color, '#D84315');
+  const acres = parseFloat(props.acres);
+  return `<div>
+    <div class="alert-badge" style="background-color: ${color};">Wildfire Incident (NIFC)</div>
+    <h3>${esc(props.headline || 'Wildfire')}</h3>
+    <p><strong>Size:</strong> ${isNaN(acres) || !acres ? 'Unknown' : acres.toLocaleString() + ' acres'}</p>
+    <p><strong>Containment:</strong> ${esc(props.contained || 'Unknown')}</p>
+    <p><strong>Cause:</strong> ${esc(props.cause || 'Unknown')}</p>
+    ${props.areaDesc ? `<p><strong>State:</strong> ${esc(props.areaDesc)}</p>` : ''}
+    ${props.timestamp ? `<p><strong>Discovered:</strong> ${new Date(props.timestamp).toLocaleDateString()}</p>` : ''}
+    ${popupFooter(props)}
+  </div>`;
+}
+
+function createVolcanoPopup(props) {
+  const color = safeColor(props.color, '#E65100');
+  return `<div>
+    <div class="alert-badge" style="background-color: ${color};">Volcano — ${esc(props.colorCode || '')}</div>
+    <h3>${esc(props.headline || 'Volcano')}</h3>
+    <p><strong>Alert level:</strong> ${esc(props.alertLevel || 'Unknown')}</p>
+    ${props.areaDesc ? `<p><strong>Region:</strong> ${esc(props.areaDesc)}</p>` : ''}
+    ${props.description ? `<p style="margin-top:0.5rem;font-size:0.85rem;">${esc(props.description.substring(0, 300))}${props.description.length > 300 ? '...' : ''}</p>` : ''}
     ${popupFooter(props)}
   </div>`;
 }
@@ -802,18 +879,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function applyPreset(preset) {
   const presets = {
-    all:      { weather: true, tropical: true, earthquake: true, wildfire: true, emergency: true, dispatch: true, conflict: true },
-    weather:  { weather: true, tropical: true, earthquake: false, wildfire: false, emergency: false, dispatch: false, conflict: false },
-    seismic:  { weather: false, tropical: false, earthquake: true, wildfire: false, emergency: false, dispatch: false, conflict: false },
-    fire:     { weather: false, tropical: false, earthquake: false, wildfire: true, emergency: false, dispatch: false, conflict: false },
-    conflict: { weather: false, tropical: false, earthquake: false, wildfire: false, emergency: true, dispatch: true, conflict: true },
+    all:      { weather: true, tropical: true, earthquake: true, wildfire: true, volcano: true, emergency: true, dispatch: true, conflict: true },
+    weather:  { weather: true, tropical: true, earthquake: false, wildfire: false, volcano: false, emergency: false, dispatch: false, conflict: false },
+    seismic:  { weather: false, tropical: false, earthquake: true, wildfire: false, volcano: true, emergency: false, dispatch: false, conflict: false },
+    fire:     { weather: false, tropical: false, earthquake: false, wildfire: true, volcano: false, emergency: false, dispatch: false, conflict: false },
+    conflict: { weather: false, tropical: false, earthquake: false, wildfire: false, volcano: false, emergency: true, dispatch: true, conflict: true },
   };
 
   if (preset === 'critical') {
     DATA_TYPES.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = false; });
     ['Tornado Warning', 'Tornado Report', 'Hurricane Warning', 'Storm Surge Warning', 'Tsunami Warning',
      'Earthquake', 'Official Alerts', 'Missing Persons', 'Armed Violence',
-     'Wildfire', 'Red Flag Warning', 'Dispatch Fire', 'Dispatch Violence', 'Dispatch Hazmat'
+     'Wildfire', 'Wildfire Incident', 'Volcano', 'Red Flag Warning', 'Dispatch Fire', 'Dispatch Violence', 'Dispatch Hazmat'
     ].forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = true; });
   } else {
     const config = presets[preset];

@@ -28,14 +28,37 @@ These are currently integrated and running in production. All sources write to a
 - **Notes**: Filtered to US bounding box. We filter by zoom level — small quakes hidden at low zoom.
 
 ### NASA FIRMS (Fire Information for Resource Management System)
-- **Data**: Satellite wildfire detections from VIIRS sensor
-- **Endpoint**: Direct CSV download (US bounding box, last 24h)
+- **Data**: Satellite *thermal anomaly* detections from the Suomi-NPP VIIRS sensor
+- **Endpoint**: Direct CSV download (US contiguous + Hawaii, last 24h)
 - **Format**: CSV (parsed to GeoJSON)
 - **Auth**: None (direct download, no API key)
 - **Update**: Every 3 hours
 - **Expiry**: 24 hours
-- **Props**: `frp`, `confidence` (stored in JSONB)
-- **Notes**: FRP (Fire Radiative Power) in MW indicates intensity. Low confidence detections filtered out. Deduped by 0.01-degree grid cell. Uses batch `storeEvents()`.
+- **Props**: `frp`, `confidence`, `basis` (stored in JSONB)
+- **False-positive gate** (`firms.js`): VIIRS reports thermal anomalies, not wildfires — the raw feed is dominated by persistent industrial sources (steel mills, refineries, gas flares), agricultural burns, volcanoes, and foreign hits that leak through the bounding box. Each deduped (0.01°) detection passes only if:
+  1. it is **not** within `VOLCANO_SUPPRESS_KM` (20 km) of an elevated USGS volcano — those are represented on the Volcano layer; **and**
+  2. its **FRP ≥ `FIRE_AUTOADMIT_FRP`** (50 MW — unmistakably a fire), **or** it falls within a **size-scaled radius of an active NIFC incident** (`FIRE_CORROBORATE_GEOREF_KM` base + the fire's equal-area radius, capped at `FIRE_CORROBORATE_MAX_KM`). The radius scales with acreage so a sub-acre brush fire can't validate an industrial hotspot kilometres away.
+  After store, a TIGER state-polygon prune (`deleteWhereNoUSState`) drops anything that didn't land in a US state (precise border vs. the coarse bounding box). On today's feed this takes ~930 raw US detections down to ~30 high-confidence markers. All gate parameters are env-overridable (see `.env.example`).
+
+### NIFC / WFIGS (National Interagency Fire Center)
+- **Data**: Current interagency wildland fire incident locations — named fires with acreage, % containment, cause
+- **Endpoint**: `https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query` (`f=geojson`)
+- **Format**: GeoJSON (points)
+- **Auth**: None
+- **Update**: Hourly
+- **Expiry**: 6 hours
+- **Props**: `acres`, `contained`, `cause` (stored in JSONB)
+- **Notes**: Filtered to `IncidentTypeCategory='WF'` (prescribed burns excluded), not declared out, and either uncontained or discovered within 21 days. Rendered as the **Wildfire Incident** type (sized by acreage) and exported via `getActiveFirePoints()` to corroborate NASA FIRMS. Uses batch `storeEvents()`.
+
+### USGS Volcano Hazards Program
+- **Data**: US volcanoes at elevated alert (above NORMAL/GREEN) with alert level + aviation color code
+- **Endpoint**: `https://volcanoes.usgs.gov/vsc/api/volcanoApi/geojson`
+- **Format**: GeoJSON (points; carries `alertLevel` / `colorCode`)
+- **Auth**: None
+- **Update**: Hourly
+- **Expiry**: 2 hours
+- **Props**: `alertLevel`, `colorCode`, `observatory` (stored in JSONB)
+- **Notes**: One call returns all US volcanoes with coordinates + current alert. Rendered as the **Volcano** type (color = aviation code) and exported via `getElevatedPoints()` so FIRMS attributes volcanic thermal anomalies here instead of mislabeling them as wildfires. Covers Alaska (not in the FIRMS feed) as a bonus.
 
 ### GDELT Project
 - **Data**: News-derived conflict and unrest events (protests, armed violence, use of force)
@@ -90,7 +113,6 @@ All endpoints verified working as of 2026-03-29. Organized by priority.
 
 | Source | Data | Format | Key? | Frequency | Geographic |
 |--------|------|--------|------|-----------|-----------|
-| NIFC Wildfire Incidents | Named fires, acreage, containment % | GeoJSON | No | Hours | Lat/lon |
 | NIFC Wildfire Perimeters | Fire boundary polygons | GeoJSON | No | Daily | Polygon |
 | FAA Airport Status | Ground delays, closures | XML | No | Minutes | Airport code |
 | NOAA River Gauges | 12,600 flood gauges with status | JSON | No | 15 min | Lat/lon |

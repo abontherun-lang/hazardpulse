@@ -34,6 +34,8 @@ const SOURCES = [
   require('./sources/noaa'),
   require('./sources/usgs'),
   require('./sources/firms'),
+  require('./sources/nifc'),
+  require('./sources/volcano'),
   require('./sources/gdelt'),
   require('./sources/fema'),
   require('./sources/dispatch'),

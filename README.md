@@ -5,11 +5,12 @@
 
 Real-time crisis map for the United States. One command to run. No API keys. No accounts. No cost.
 
-**7 data sources** — NOAA weather, USGS earthquakes, NASA wildfires, GDELT conflict, FEMA emergency alerts, 911 dispatch, satellite imagery, and precipitation radar — all free, all updating automatically.
+**9 data sources** — NOAA weather, USGS earthquakes, NASA wildfire detections, NIFC named fires, USGS volcanoes, GDELT conflict, FEMA emergency alerts, 911 dispatch, satellite imagery, and precipitation radar — all free, all updating automatically.
 
 **What you get:**
 - Live interactive map with 2,000+ events updating on a schedule
-- 7 layer groups you can toggle independently (weather, tropical, seismic, fire, emergency, dispatch, conflict, satellite/radar)
+- 8 layer groups you can toggle independently (weather, tropical, seismic, fire, volcano, emergency, dispatch, conflict, satellite/radar)
+- Satellite fire detections cross-checked against official NIFC incidents — high-intensity or confirmed fires only, not industrial/agricultural thermal noise
 - Quick-view presets to switch between crisis types in one click
 - Time slider to filter by recency
 - Zoom-based filtering — overview at country level, full detail as you zoom in
