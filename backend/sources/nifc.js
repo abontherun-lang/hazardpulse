@@ -97,7 +97,10 @@ async function fetch() {
       color: sev.color,
       lat,
       lon,
-      timestamp: a.FireDiscoveryDateTime || now,
+      // Stamp ingestion time so an active multi-week fire stays inside the
+      // rolling display window; the real discovery date rides along as a prop.
+      timestamp: now,
+      discovered: a.FireDiscoveryDateTime || null,
       acres,
       contained,
       cause: sanitize(a.FireCause || 'Unknown')
