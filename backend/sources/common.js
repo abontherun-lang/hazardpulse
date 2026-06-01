@@ -56,6 +56,13 @@ const TTL = {
   VOLCANO: 7200       // 2 hours (alert levels change slowly)
 };
 
+// Rolling display window: the API only serves events whose event_time falls
+// within the last N hours, regardless of TTL. Keeps the map (and time slider)
+// focused on recent activity instead of every still-unexpired record. Ongoing
+// incidents (NIFC fires, volcanoes) stamp their event_time at ingestion so they
+// stay inside the window while they remain active. Env-overridable.
+const DISPLAY_WINDOW_HOURS = parseInt(process.env.DISPLAY_WINDOW_HOURS) || 72;
+
 // ===================== GEO HELPERS =====================
 
 /** Great-circle distance between two lat/lon points, in kilometers. */
@@ -335,8 +342,9 @@ async function getActiveEvents(source) {
            props, state_abbr, state_name, county, city
     FROM events
     WHERE source = $1 AND (expires_at IS NULL OR expires_at > NOW())
+      AND event_time > NOW() - (INTERVAL '1 hour' * $2)
     ORDER BY event_time DESC
-  `, [source]);
+  `, [source, DISPLAY_WINDOW_HOURS]);
 
   const metaResult = await pool.query(
     'SELECT last_update, last_count FROM source_meta WHERE source = $1',
@@ -377,9 +385,10 @@ async function getAllActiveEvents(sources) {
       LEFT JOIN scanners sc ON sc.name = e.county AND sc.state_abbr = e.state_abbr
       LEFT JOIN scanners sp ON sp.name = e.city AND sp.state_abbr = e.state_abbr
       LEFT JOIN state_fips sf ON sf.state_abbr = e.state_abbr
-      WHERE e.expires_at IS NULL OR e.expires_at > NOW()
+      WHERE (e.expires_at IS NULL OR e.expires_at > NOW())
+        AND e.event_time > NOW() - (INTERVAL '1 hour' * $1)
       ORDER BY e.event_time DESC
-    `),
+    `, [DISPLAY_WINDOW_HOURS]),
     // Per-source counts + time bounds
     pool.query(`
       SELECT
@@ -388,9 +397,10 @@ async function getAllActiveEvents(sources) {
         MIN(EXTRACT(EPOCH FROM event_time) * 1000) AS time_min,
         MAX(EXTRACT(EPOCH FROM event_time) * 1000) AS time_max
       FROM events
-      WHERE expires_at IS NULL OR expires_at > NOW()
+      WHERE (expires_at IS NULL OR expires_at > NOW())
+        AND event_time > NOW() - (INTERVAL '1 hour' * $1)
       GROUP BY source
-    `),
+    `, [DISPLAY_WINDOW_HOURS]),
     // Source metadata (last update times)
     pool.query('SELECT source, last_update, last_count FROM source_meta')
   ]);

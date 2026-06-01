@@ -653,7 +653,7 @@ function createNifcPopup(props) {
     <p><strong>Containment:</strong> ${esc(props.contained || 'Unknown')}</p>
     <p><strong>Cause:</strong> ${esc(props.cause || 'Unknown')}</p>
     ${props.areaDesc ? `<p><strong>State:</strong> ${esc(props.areaDesc)}</p>` : ''}
-    ${props.timestamp ? `<p><strong>Discovered:</strong> ${new Date(props.timestamp).toLocaleDateString()}</p>` : ''}
+    ${props.discovered ? `<p><strong>Discovered:</strong> ${new Date(props.discovered).toLocaleDateString()}</p>` : ''}
     ${popupFooter(props)}
   </div>`;
 }
