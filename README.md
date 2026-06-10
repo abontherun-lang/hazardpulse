@@ -74,9 +74,12 @@ Then open `http://<YOUR_IP>:3000` on any device on the same network.
 ```bash
 cd hazardpulse
 git pull
-docker compose build
+docker compose pull hazardpulse
 docker compose up -d
 ```
+
+This pulls the prebuilt image published by CI. If you've modified the code,
+build from source instead: `docker compose up -d --build`.
 
 ### Stopping
 
@@ -150,7 +153,7 @@ The first startup needs internet access to reach NOAA, USGS, NASA, GDELT, and FE
 
 **Stale data after update:**
 ```bash
-docker compose build
+docker compose pull hazardpulse
 docker compose up -d
 ```
 
