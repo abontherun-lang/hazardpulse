@@ -122,15 +122,33 @@ Supported platforms: `socrata` (Socrata SODA API) and `arcgis` (ArcGIS FeatureSe
 - Should **update at least daily**
 - Must handle API failures gracefully (log and continue, don't crash)
 
+## Running Tests
+
+Unit tests cover the data-source parsers and shared helpers. They run with
+Node's built-in test runner — no database or network needed:
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+Tests live in `backend/test/`. If you add or change parsing logic in
+`backend/sources/`, add a test — keep parsing functions pure (no fetching or
+storage) so they stay testable. CI runs `npm test` and `docker compose build`
+on every PR.
+
 ## Pull Request Process
 
 1. Fork the repo and create a branch from `main`
 2. Make your changes
-3. Test with Docker: `docker compose build && docker compose up -d`
-4. Verify the map loads and your changes work
-5. Open a PR with a clear description of what and why
+3. Run the unit tests: `cd backend && npm test`
+4. Test with Docker: `docker compose build && docker compose up -d`
+5. Verify the map loads and your changes work
+6. Open a PR with a clear description of what and why
 
 ### PR checklist
+- [ ] `npm test` passes
 - [ ] Docker builds and runs successfully
 - [ ] No hardcoded API keys, emails, or personal info
 - [ ] New data sources follow the module pattern in `backend/sources/`

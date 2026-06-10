@@ -66,32 +66,22 @@ function nearActiveFire(lat, lon, fires) {
   return false;
 }
 
-async function fetch() {
-  console.log('\n🔥 Fetching wildfire data from NASA FIRMS...');
-  let response;
-  try {
-    response = await axios.get(URL, { timeout: 30000 });
-  } catch (e) {
-    console.error(`   FIRMS API error: ${e.message}`);
-    throw e;
-  }
-  if (typeof response.data !== 'string') {
-    console.error('   FIRMS returned non-CSV response');
+/**
+ * Parse the FIRMS CSV and apply the admission gates. Pure — corroboration
+ * inputs (active NIFC fires, elevated volcanoes) are passed in, nothing is
+ * fetched or stored. Throws if the payload isn't FIRMS CSV: NASA serves HTML
+ * error/maintenance pages with HTTP 200, which would otherwise parse as
+ * garbage rows.
+ */
+function parseDetections(csvText, fires = [], volcs = []) {
+  if (typeof csvText !== 'string') {
     throw new Error('FIRMS returned non-CSV response');
   }
-
-  // Corroboration inputs. If either source is unavailable we degrade
-  // gracefully: an empty volcano list suppresses nothing; an empty fire list
-  // means only the FRP auto-admit path can pass.
-  let fires = [], volcs = [];
-  try { fires = await nifc.getActiveFirePoints(); }
-  catch (e) { console.warn(`   [firms] NIFC corroboration unavailable: ${e.message}`); }
-  try { volcs = await volcano.getElevatedPoints(); }
-  catch (e) { console.warn(`   [firms] volcano list unavailable: ${e.message}`); }
-
-  const lines = response.data.trim().split('\n');
-  const rows = lines.slice(1); // skip CSV header
-  console.log(`   Total fire detections: ${rows.length}`);
+  const lines = csvText.trim().split('\n');
+  if (!lines[0] || !lines[0].includes('latitude') || !lines[0].includes('frp')) {
+    throw new Error('FIRMS response missing CSV header');
+  }
+  const rows = lines.slice(1);
 
   const events = [];
   const seen = new Set();
@@ -150,6 +140,32 @@ async function fetch() {
     });
   }
 
+  return { total: rows.length, events, admitFrp, admitNifc, dropVolcano, dropUncorroborated };
+}
+
+async function fetch() {
+  console.log('\n🔥 Fetching wildfire data from NASA FIRMS...');
+  let response;
+  try {
+    response = await axios.get(URL, { timeout: 30000 });
+  } catch (e) {
+    console.error(`   FIRMS API error: ${e.message}`);
+    throw e;
+  }
+
+  // Corroboration inputs. If either source is unavailable we degrade
+  // gracefully: an empty volcano list suppresses nothing; an empty fire list
+  // means only the FRP auto-admit path can pass.
+  let fires = [], volcs = [];
+  try { fires = await nifc.getActiveFirePoints(); }
+  catch (e) { console.warn(`   [firms] NIFC corroboration unavailable: ${e.message}`); }
+  try { volcs = await volcano.getElevatedPoints(); }
+  catch (e) { console.warn(`   [firms] volcano list unavailable: ${e.message}`); }
+
+  const { total, events, admitFrp, admitNifc, dropVolcano, dropUncorroborated } =
+    parseDetections(response.data, fires, volcs);
+  console.log(`   Total fire detections: ${total}`);
+
   await storeEvents(SOURCE_NAME, events, TTL.WILDFIRE);
 
   // Precise US border backstop: drop any FIRMS row (this cycle or older) that
@@ -169,11 +185,11 @@ async function fetch() {
     `dropped volcano ${dropVolcano}, uncorroborated ${dropUncorroborated}, foreign-pruned ${pruned} | ${active} active total`
   );
   await setLastUpdate(SOURCE_NAME, active);
-  return { total: rows.length, admitted: events.length, active, admitFrp, admitNifc, dropVolcano, dropUncorroborated, pruned };
+  return { total, admitted: events.length, active, admitFrp, admitNifc, dropVolcano, dropUncorroborated, pruned };
 }
 
 async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, parseDetections, corrRadiusKm, severity };
