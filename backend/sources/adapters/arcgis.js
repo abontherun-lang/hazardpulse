@@ -86,4 +86,4 @@ function normalize(attrs, feed) {
   };
 }
 
-module.exports = { fetchIncidents };
+module.exports = { fetchIncidents, normalize };

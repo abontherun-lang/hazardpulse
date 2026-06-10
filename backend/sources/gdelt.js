@@ -177,4 +177,4 @@ async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, parseCsv, getExportUrls };

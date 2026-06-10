@@ -474,7 +474,7 @@ async function countActiveEvents(source) {
 }
 
 module.exports = {
-  sanitize, sanitizeUrl, isInUS, haversineKm,
+  sanitize, sanitizeUrl, isInUS, haversineKm, buildGeoJSON,
   TTL, storeEvent, storeEvents,
   getActiveEvents, getAllActiveEvents,
   setLastUpdate, deleteWhereNoUSState, countActiveEvents
