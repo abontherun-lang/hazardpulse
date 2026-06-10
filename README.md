@@ -143,12 +143,37 @@ cp .env.example .env
 See [.env.example](.env.example) for the full list, including the wildfire
 corroboration-radius tuning knobs.
 
-**Home-base pin:** by default the map pin is placed by geolocating your
-server's public IP (city-level accuracy, resolved once at startup). For an
-exact location, set `HOME_LAT`/`HOME_LON` (and optionally `HOME_LABEL`) in
-`.env`. The coordinates stay in your environment file — they are never
-committed to git — but note they are visible to anyone who can open your
-map, so don't expose the app publicly with a precise home location set.
+### Setting your home base
+
+The map shows a home-base pin so you can see at a glance how close events are
+to you. By default it's placed by geolocating your server's public IP
+(city-level accuracy, resolved once at startup). To pin an exact location:
+
+```bash
+# 1. Get your coordinates — right-click anywhere in Google Maps and the
+#    lat/long appears at the top of the context menu, or use openstreetmap.org
+#    (right-click → "Show address").
+
+# 2. Add them to .env (create it from the template if you haven't):
+cp .env.example .env    # skip if .env already exists
+```
+
+```bash
+# .env
+HOME_LAT=41.8781
+HOME_LON=-87.6298
+HOME_LABEL=The Office        # optional pin label, defaults to "Home Base"
+```
+
+```bash
+# 3. Restart to apply:
+docker compose up -d
+```
+
+Clicking the pin shows your label and a link to nearby emergency scanners.
+The coordinates stay in your environment file — `.env` is gitignored and
+never committed — but they are visible to anyone who can open your map, so
+don't expose the app publicly with a precise home location set.
 
 ## Troubleshooting
 
