@@ -218,6 +218,10 @@ Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. 
 | [docs/data-sources-research.md](docs/data-sources-research.md) | 20+ US government API research |
 | [docs/civil-incidents-research.md](docs/civil-incidents-research.md) | 911/CAD dispatch data sources research |
 
+## License
+
+HazardPulse is free software licensed under the [GNU Affero General Public License v3.0](LICENSE). You can run, modify, and redistribute it; if you offer a modified version as a network service, you must make your source available under the same license.
+
 ## Disclaimer
 
 HazardPulse is an informational tool that aggregates publicly available data. It is **not a substitute for official emergency services, government warnings, or professional emergency management guidance**. Do not rely on this tool for life-safety decisions. Always follow directives from local authorities and official sources like weather.gov and FEMA. This software is provided "AS IS" without warranty of any kind.
