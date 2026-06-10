@@ -113,7 +113,7 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 
 - **PostgreSQL + PostGIS** persistent storage with normalized event schema
 - **Census TIGER/Line** boundary data for automatic reverse geocoding (state, county, city)
-- **Scanner links resolved via DB join** — 27,302 Broadcastify channels matched by county/city
+- **Scanner links resolved via DB join** — 27,302 Broadcastify county/city IDs matched to events. Links open [Broadcastify](https://www.broadcastify.com/)'s public listen pages in a new tab; the lookup table is an index of their public county IDs compiled for interoperability — no audio is embedded, proxied, or rebroadcast
 - NOAA alerts geocoded via TIGER county polygons, with bundled UGC zone centroids as fallback (7,880 zones)
 - VIIRS fire detections gated by intensity or NIFC corroboration, with a TIGER border backstop
 - GDELT noise reduction — unreliable CAMEO codes dropped, multi-source confirmation required
@@ -142,6 +142,13 @@ cp .env.example .env
 
 See [.env.example](.env.example) for the full list, including the wildfire
 corroboration-radius tuning knobs.
+
+**Home-base pin:** by default the map pin is placed by geolocating your
+server's public IP (city-level accuracy, resolved once at startup). For an
+exact location, set `HOME_LAT`/`HOME_LON` (and optionally `HOME_LABEL`) in
+`.env`. The coordinates stay in your environment file — they are never
+committed to git — but note they are visible to anyone who can open your
+map, so don't expose the app publicly with a precise home location set.
 
 ## Troubleshooting
 
@@ -244,7 +251,9 @@ HazardPulse is free software licensed under the [GNU Affero General Public Licen
 
 ## Disclaimer
 
-HazardPulse is an informational tool that aggregates publicly available data. It is **not a substitute for official emergency services, government warnings, or professional emergency management guidance**. Do not rely on this tool for life-safety decisions. Always follow directives from local authorities and official sources like weather.gov and FEMA. This software is provided "AS IS" without warranty of any kind.
+HazardPulse is an informational tool that aggregates publicly available data. It is **not a substitute for official emergency services, government warnings, or professional emergency management guidance**. Do not rely on this tool for life-safety decisions. Always follow directives from local authorities and official sources like weather.gov and FEMA.
+
+Displayed data may be **delayed, incomplete, or inaccurate**: upstream sources update on their own schedules (see the intervals above), feeds can fail or change format without notice, news-derived events (GDELT) are machine-extracted and imperfect even after filtering, and satellite fire detections are statistical products, not confirmed incidents. No guarantee is made of availability, timeliness, or accuracy. This software is provided "AS IS" without warranty of any kind; see the [AGPL-3.0 license](LICENSE) for the full warranty and liability disclaimer.
 
 ## Data Attribution
 
