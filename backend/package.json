@@ -16,8 +16,7 @@
     "leaflet",
     "real-time"
   ],
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "adm-zip": "^0.5.16",
     "axios": "^1.6.0",
