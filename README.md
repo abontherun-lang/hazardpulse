@@ -1,30 +1,32 @@
 # HazardPulse
 
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](Dockerfile)
+[![CI](https://github.com/abontherun-lang/hazardpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/abontherun-lang/hazardpulse/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](backend/package.json)
 
 Real-time crisis map for the United States. One command to run. No API keys. No accounts. No cost.
 
-**9 data sources** — NOAA weather, USGS earthquakes, NASA wildfire detections, NIFC named fires, USGS volcanoes, GDELT conflict, FEMA emergency alerts, 911 dispatch, satellite imagery, and precipitation radar — all free, all updating automatically.
+![HazardPulse Demo](docs/assets/demo.gif)
+
+**9 polled data sources** — NOAA weather alerts, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
 
 **What you get:**
-- Live interactive map with 2,000+ events updating on a schedule
-- 8 layer groups you can toggle independently (weather, tropical, seismic, fire, volcano, emergency, dispatch, conflict, satellite/radar)
-- Satellite fire detections cross-checked against official NIFC incidents — high-intensity or confirmed fires only, not industrial/agricultural thermal noise
-- Quick-view presets to switch between crisis types in one click
-- Time slider to filter by recency
-- Zoom-based filtering — overview at country level, full detail as you zoom in
-- Severity-weighted display — critical events pop, minor ones fade
-- Broadcastify scanner links to listen to local emergency radio
-- Every event automatically tagged with state, county, and city via Census boundary data
+- Live interactive map tracking ~2,000 events at a time, refreshed on per-source schedules
+- 9 layer groups you can toggle independently — weather, hurricanes/tropical, earthquakes/tsunami, wildfires, volcanoes, emergency alerts, 911 dispatch, civil/conflict, satellite & radar
+- 6 one-click Quick Views: All, Critical (life-safety only), Weather, Seismic, Fire, Conflict
+- Satellite fire detections cross-checked against official NIFC incidents — high-intensity or corroborated fires only, not industrial/agricultural thermal noise
+- Post-event tornado damage surveys with EF ratings from NWS storm reports
+- Time slider to filter by recency, zoom-based filtering, severity-weighted display
+- Every event reverse-geocoded to state, county, and city via Census boundary data
+- One-click Broadcastify links to listen to local emergency scanners near any event
+- Local weather conditions and home-base pin (auto-located or pinned via config)
 - Self-hosted with Docker — your data, your server
 
 ```bash
 docker compose up -d
 # → http://localhost:3000
 ```
-
-![HazardPulse Demo](docs/assets/demo.gif)
 
 ---
 
@@ -53,6 +55,8 @@ docker compose up -d
 
 Open **http://localhost:3000** in your browser.
 
+`docker compose up` pulls a prebuilt image published by CI on every merge to main — no local build. To build from source instead (e.g. after modifying the code), use `docker compose up -d --build`.
+
 **First startup takes ~3-5 minutes** — it downloads Census TIGER/Line boundary data for reverse geocoding and fetches initial data from all sources. Subsequent starts are instant (data persists in Docker volumes).
 
 ### Access from other devices on your network
@@ -78,9 +82,6 @@ docker compose pull hazardpulse
 docker compose up -d
 ```
 
-This pulls the prebuilt image published by CI. If you've modified the code,
-build from source instead: `docker compose up -d --build`.
-
 ### Stopping
 
 ```bash
@@ -97,6 +98,9 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 | NOAA Weather API | Severe weather, floods, fire warnings, hurricanes, tsunami | 15 min | Free |
 | USGS Earthquake API | Earthquake detections with magnitude and depth | 5 min | Free |
 | NASA FIRMS | Satellite wildfire detections (VIIRS sensor) | 3 hours | Free |
+| NIFC | Named wildfire incidents with acreage and containment | Hourly | Free |
+| NWS SPC | Post-event tornado damage surveys with EF ratings | 15 min | Free |
+| USGS Volcano API | Volcano alert levels (elevated only) | Hourly | Free |
 | GDELT Project | Armed violence, protests, use of force (news-derived) | 15 min | Free |
 | FEMA IPAWS | Evacuations, law enforcement, AMBER/Silver alerts | 15 min | Free |
 | 911 Dispatch | Municipal CAD feeds (Seattle, SF, Austin, Cincinnati, Indianapolis) | 10 min | Free |
@@ -105,14 +109,18 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 
 ## Under the Hood
 
+![HazardPulse Screenshot](docs/assets/screenshot.png)
+
 - **PostgreSQL + PostGIS** persistent storage with normalized event schema
 - **Census TIGER/Line** boundary data for automatic reverse geocoding (state, county, city)
 - **Scanner links resolved via DB join** — 27,302 Broadcastify channels matched by county/city
-- NOAA alerts geocoded via bundled UGC zone centroids (7,880 zones)
+- NOAA alerts geocoded via TIGER county polygons, with bundled UGC zone centroids as fallback (7,880 zones)
+- VIIRS fire detections gated by intensity or NIFC corroboration, with a TIGER border backstop
 - GDELT noise reduction — unreliable CAMEO codes dropped, multi-source confirmation required
 - FEMA IPAWS alerts routed to correct layers (emergencies, missing persons, fire)
 - Redis response cache with ETag/304 support
 - Gzip compression, rate limiting, XSS sanitization
+- CI builds, tests, and publishes the Docker image to GHCR on every merge
 
 ## Configuration
 
@@ -126,10 +134,14 @@ cp .env.example .env
 |---|---|---|
 | `PORT` | `3000` | Host port for the web UI and API |
 | `USER_AGENT` | `HazardPulse/1.0, your-email@example.com` | NOAA contact info (recommended) |
+| `DISPLAY_WINDOW_HOURS` | `72` | Rolling window of events shown on the map |
+| `HOME_LAT` / `HOME_LON` / `HOME_LABEL` | *(auto)* | Home-base pin; defaults to server IP geolocation |
+| `FIRE_AUTOADMIT_FRP` | `50` | MW threshold to auto-admit a satellite fire detection |
 | `ALLOWED_ORIGINS` | *(open)* | Comma-separated CORS origins for production |
 | `NODE_ENV` | `production` | Set to `development` for verbose logging |
 
-Or edit `docker-compose.yml` directly — it's well-commented with explanations for every setting.
+See [.env.example](.env.example) for the full list, including the wildfire
+corroboration-radius tuning knobs.
 
 ## Troubleshooting
 
@@ -171,20 +183,25 @@ hazardpulse/
 ├── Dockerfile                 Node.js + Redis (response cache)
 ├── start.sh                   Container entrypoint
 ├── .env.example               Environment variable template
+├── .github/workflows/ci.yml   Tests, Docker build, GHCR publish
 ├── backend/
 │   ├── server.js              Express API + cron scheduling
 │   ├── db.js                  PostgreSQL/PostGIS connection pool
 │   ├── schema.sql             Database schema (events, source_meta, scanners)
 │   ├── redis-client.js        Redis connection (response cache)
 │   ├── ugc_centroids.json     NOAA zone geocoding lookup (7,880 zones)
+│   ├── test/                  Unit tests (node:test, no DB or network needed)
 │   ├── scripts/
 │   │   ├── load-tiger.sh      Downloads Census TIGER boundary data into PostGIS
 │   │   └── load-scanners.js   Imports Broadcastify scanner data into PostGIS
 │   └── sources/               One module per data source
-│       ├── common.js          Storage layer (storeEvent → PostGIS + reverse geocode)
+│       ├── common.js          Storage layer (storeEvents → PostGIS + reverse geocode)
 │       ├── noaa.js            NOAA weather alerts
 │       ├── usgs.js            USGS earthquakes
-│       ├── firms.js           NASA FIRMS wildfires
+│       ├── firms.js           NASA FIRMS satellite fire detections
+│       ├── nifc.js            NIFC named wildfire incidents
+│       ├── spc.js             NWS SPC tornado damage surveys
+│       ├── volcano.js         USGS volcano alert levels
 │       ├── gdelt.js           GDELT conflict/unrest
 │       ├── fema.js            FEMA IPAWS emergency alerts
 │       ├── dispatch.js        911 dispatch aggregator
@@ -207,7 +224,7 @@ hazardpulse/
 3. Add `require('./sources/yoursource')` to the `SOURCES` array in `server.js`
 4. Add the layer checkbox to `frontend/index.html` and layer group to `frontend/app.js`
 
-Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. Keep parsing logic pure and add a test in `backend/test/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## Documentation
 
@@ -231,4 +248,4 @@ HazardPulse is an informational tool that aggregates publicly available data. It
 
 ## Data Attribution
 
-NOAA/NWS · U.S. Geological Survey · NASA FIRMS · [GDELT Project](https://www.gdeltproject.org/) · FEMA IPAWS · U.S. Census Bureau (TIGER/Line) · Iowa Environmental Mesonet (Iowa State University) · RainViewer · [Broadcastify](https://www.broadcastify.com/) · OpenStreetMap contributors
+NOAA/NWS · U.S. Geological Survey · NASA FIRMS · National Interagency Fire Center · [GDELT Project](https://www.gdeltproject.org/) · FEMA IPAWS · U.S. Census Bureau (TIGER/Line) · Iowa Environmental Mesonet (Iowa State University) · RainViewer · [Broadcastify](https://www.broadcastify.com/) · OpenStreetMap contributors
