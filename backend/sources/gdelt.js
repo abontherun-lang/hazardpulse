@@ -12,7 +12,10 @@
 
 const axios = require('axios');
 const AdmZip = require('adm-zip');
-const { sanitize, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const {
+  sanitize, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
+  setLastUpdate, deleteWhereNoUSState
+} = require('./common');
 
 const SOURCE_NAME = 'GDELT';
 const CRON_SCHEDULE = '*/15 * * * *'; // every 15 minutes
@@ -41,6 +44,10 @@ const EVENT_LABELS = {
 const DROP_CODES = new Set(['190', '192', '193', '194', '195', '182']);
 const ARMED_CODES = new Set(['186', '191', '185']);
 const FORCE_CODES = new Set(['180', '181', '183', '184', '200', '201', '202', '203']);
+
+// FIPS 10-4 country codes (GDELT's ActionGeo_CountryCode) for the US and its
+// territories. RQ=Puerto Rico, GQ=Guam, VQ=USVI, AQ=American Samoa, CQ=N. Marianas.
+const US_COUNTRY_CODES = new Set(['US', 'RQ', 'GQ', 'VQ', 'AQ', 'CQ']);
 
 function getExportUrls(hoursBack) {
   const urls = [];
@@ -80,7 +87,14 @@ function parseCsv(csvData, fileTimestamp) {
     const lat = parseFloat(row[56]);
     const lon = parseFloat(row[57]);
     if (isNaN(lat) || isNaN(lon)) continue;
-    if (row[53] !== 'US' && !isInUS(lat, lon)) continue;
+
+    // US filter. The bbox is coarse (southern Canada / northern Mexico fall
+    // inside it), so an explicit foreign country code wins over coordinates;
+    // the bbox is only a fallback for rows GDELT didn't geocode to a country.
+    // A TIGER state-join prune after storage catches what's left.
+    const country = row[53];
+    if (country && !US_COUNTRY_CODES.has(country)) continue;
+    if (!country && !isInUS(lat, lon)) continue;
 
     events.push({
       id: `gdelt-${row[0]}`, rootCode, eventCode,
@@ -168,9 +182,17 @@ async function fetch(hoursBack = 0.25) {
   }
 
   await storeEvents(SOURCE_NAME, normalized, TTL.GDELT);
-  console.log(`   ✓ Stored ${normalized.length} GDELT events`);
-  await setLastUpdate(SOURCE_NAME, normalized.length);
-  return { total: allEvents.length, stored: normalized.length };
+
+  // Precise US border backstop (same as FIRMS): drop stored rows that didn't
+  // reverse-geocode to a US state — blank-country events the coarse bbox let
+  // through (e.g. southern Canada).
+  let pruned = 0;
+  try { pruned = await deleteWhereNoUSState(SOURCE_NAME); }
+  catch (e) { console.warn(`   [gdelt] US-state prune failed: ${e.message}`); }
+
+  console.log(`   ✓ Stored ${normalized.length} GDELT events (${pruned} foreign-pruned)`);
+  await setLastUpdate(SOURCE_NAME, Math.max(0, normalized.length - pruned));
+  return { total: allEvents.length, stored: normalized.length, pruned };
 }
 
 async function getActive() {

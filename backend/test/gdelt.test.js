@@ -50,9 +50,19 @@ test('drops non-US events outside the US bounding box', () => {
   assert.equal(parseCsv(row({ country: 'MX', lat: '19.43', lon: '-99.13' })).length, 0);
 });
 
-test('keeps US-coded events and falls back to bounding box', () => {
-  // Country code blank but coordinates inside the US
-  assert.equal(parseCsv(row({ country: '' })).length, 1);
+test('drops foreign-coded events even inside the coarse US bounding box', () => {
+  // Toronto falls inside the continental bbox — the explicit country code wins
+  assert.equal(parseCsv(row({ country: 'CA', lat: '43.65', lon: '-79.38' })).length, 0);
+});
+
+test('keeps US territory country codes', () => {
+  assert.equal(parseCsv(row({ country: 'RQ', lat: '18.4', lon: '-66.1' })).length, 1);  // Puerto Rico
+  assert.equal(parseCsv(row({ country: 'AQ', lat: '-14.3', lon: '-170.7' })).length, 1); // American Samoa (no bbox)
+});
+
+test('blank country code falls back to the bounding box', () => {
+  assert.equal(parseCsv(row({ country: '' })).length, 1);                                   // inside bbox
+  assert.equal(parseCsv(row({ country: '', lat: '56.1', lon: '-106.3' })).length, 0);       // central Canada
 });
 
 test('drops events older than 72 hours', () => {
