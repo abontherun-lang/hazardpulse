@@ -8,7 +8,7 @@
  * To add a new platform: create an adapter in adapters/ and register it below.
  */
 
-const { sanitize, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 // Platform adapters — add new ones here
 const adapters = {
@@ -39,9 +39,16 @@ const CATEGORY_COLORS = {
   'Dispatch Other': '#546E7A',
 };
 
+// Consecutive zero-row cycles per feed. A city feed that silently changes
+// its schema (Cincinnati, 2026-09) returns HTTP 200 and no rows forever;
+// this is the only signal that it happened.
+const ZERO_WARN_AFTER = 3;
+const zeroStreak = new Map();
+
 async function fetch() {
   let totalStored = 0;
   let totalErrors = 0;
+  const perFeed = {};
 
   for (const feed of feeds) {
     const adapter = adapters[feed.platform];
@@ -57,33 +64,45 @@ async function fetch() {
         const category = inc.category || 'Dispatch Other';
         return {
           id: inc.id,
-          event: sanitize(inc.type),
+          event: text(inc.type),
           category,
           severity: CATEGORY_SEVERITY[category] || 'Moderate',
-          headline: sanitize(`${inc.type} — ${inc.city}`),
+          headline: text(`${inc.type} — ${inc.city}`),
           description: '',
-          areaDesc: sanitize(inc.address || inc.city),
+          areaDesc: text(inc.address || inc.city),
           color: CATEGORY_COLORS[category] || '#546E7A',
           sourceUrl: feed.sourceUrl || (feed.domain ? `https://${feed.domain}/d/${feed.dataset}` : ''),
           timestamp: inc.time,
           lat: inc.lat,
           lon: inc.lon,
-          city: sanitize(inc.city),
-          dispatchType: sanitize(inc.type)
+          city: text(inc.city),
+          dispatchType: text(inc.type)
         };
       });
 
       await storeEvents(SOURCE_NAME, events, TTL.DISPATCH);
       totalStored += events.length;
+      perFeed[feed.id] = events.length;
       console.log(`   ${feed.city}: ${events.length} incidents`);
+
+      if (events.length === 0) {
+        const streak = (zeroStreak.get(feed.id) || 0) + 1;
+        zeroStreak.set(feed.id, streak);
+        if (streak >= ZERO_WARN_AFTER) {
+          console.warn(`   ⚠ ${feed.city}: 0 incidents for ${streak} consecutive cycles — the feed may have changed (${feed.domain || feed.endpoint})`);
+        }
+      } else {
+        zeroStreak.set(feed.id, 0);
+      }
     } catch (e) {
       console.error(`   ${feed.city} failed: ${e.message}${e.response ? ' — ' + JSON.stringify(e.response.data).substring(0, 200) : ''}`);
+      perFeed[feed.id] = { error: e.message };
       totalErrors++;
     }
   }
 
   await setLastUpdate(SOURCE_NAME, totalStored);
-  return { stored: totalStored, errors: totalErrors };
+  return { stored: totalStored, errors: totalErrors, feeds: perFeed };
 }
 
 async function getActive() {

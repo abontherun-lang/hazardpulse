@@ -13,7 +13,7 @@
 const axios = require('axios');
 const AdmZip = require('adm-zip');
 const {
-  sanitize, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
+  text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
   setLastUpdate, deleteWhereNoUSState
 } = require('./common');
 
@@ -167,12 +167,12 @@ async function fetch(hoursBack = 0.25) {
 
     normalized.push({
       id: event.id,
-      event: sanitize(label),
+      event: text(label),
       category,
       severity: event.rootCode === '20' ? 'Extreme' : event.rootCode === '19' ? 'Severe' : 'Moderate',
-      headline: sanitize(`${label} — ${event.geo}`),
+      headline: text(`${label} — ${event.geo}`),
       description: '',
-      areaDesc: sanitize(event.geo),
+      areaDesc: text(event.geo),
       color,
       lat: event.lat,
       lon: event.lon,

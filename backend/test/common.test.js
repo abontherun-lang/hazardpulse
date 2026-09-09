@@ -1,18 +1,31 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { sanitize, sanitizeUrl, isInUS, haversineKm, buildGeoJSON } = require('../sources/common');
+const { text, sanitizeUrl, isInUS, haversineKm, buildGeoJSON, cronIntervalMinutes } = require('../sources/common');
 
-test('sanitize escapes HTML special characters', () => {
-  assert.equal(sanitize(`<script>alert("x&y")</script>`),
-    '&lt;script&gt;alert(&quot;x&amp;y&quot;)&lt;/script&gt;');
-  assert.equal(sanitize(`O'Brien`), 'O&#x27;Brien');
+test('text stores upstream strings raw — escaping happens once, in the frontend', () => {
+  assert.equal(text(`Fisher's Mesa & A&W <fire>`), `Fisher's Mesa & A&W <fire>`);
 });
 
-test('sanitize handles empty and non-string input', () => {
-  assert.equal(sanitize(''), '');
-  assert.equal(sanitize(null), '');
-  assert.equal(sanitize(undefined), '');
-  assert.equal(sanitize(42), '42');
+test('text strips control characters and trims', () => {
+  assert.equal(text('  Tornado\u0000 Warning\u001f  '), 'Tornado Warning');
+  assert.equal(text('line one\nline two'), 'line one\nline two'); // newlines survive
+});
+
+test('text handles empty and non-string input', () => {
+  assert.equal(text(''), '');
+  assert.equal(text(null), '');
+  assert.equal(text(undefined), '');
+  assert.equal(text(42), '42');
+});
+
+test('cronIntervalMinutes reads the cron shapes the sources use', () => {
+  assert.equal(cronIntervalMinutes('*/15 * * * *'), 15);
+  assert.equal(cronIntervalMinutes('*/5 * * * *'), 5);
+  assert.equal(cronIntervalMinutes('0 * * * *'), 60);
+  assert.equal(cronIntervalMinutes('15 * * * *'), 60);
+  assert.equal(cronIntervalMinutes('0 */3 * * *'), 180);
+  assert.equal(cronIntervalMinutes('weird'), null);
+  assert.equal(cronIntervalMinutes(undefined), null);
 });
 
 test('sanitizeUrl allows only http(s) URLs', () => {

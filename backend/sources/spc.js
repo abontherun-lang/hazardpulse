@@ -15,7 +15,7 @@
  */
 
 const axios = require('axios');
-const { sanitize, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'SPC';
 const CRON_SCHEDULE = '*/15 * * * *';
@@ -79,9 +79,9 @@ async function fetch() {
       event: 'Tornado Report',
       category: 'Tornado Report',
       severity: sev.level,
-      headline: sanitize(`${efLabel} Tornado — ${location}`),
-      description: sanitize(a.COMMENTS || ''),
-      areaDesc: sanitize(location),
+      headline: text(`${efLabel} Tornado — ${location}`),
+      description: text(a.COMMENTS || ''),
+      areaDesc: text(location),
       color: sev.color,
       sourceUrl: 'https://www.spc.noaa.gov/climo/reports/today.html',
       timestamp: a.UTC_DATETIME || Date.now(),

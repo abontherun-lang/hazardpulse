@@ -14,7 +14,7 @@
  */
 
 const axios = require('axios');
-const { sanitize, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'NIFC';
 const CRON_SCHEDULE = '15 * * * *'; // hourly, offset from FIRMS
@@ -91,9 +91,9 @@ async function fetch() {
       event: 'Wildfire Incident',
       category: 'Wildfire Incident',
       severity: sev.level,
-      headline: sanitize(`${a.IncidentName || 'Unnamed'} — ${sizeStr}, ${contained} contained`),
-      description: sanitize(a.IncidentShortDescription || ''),
-      areaDesc: sanitize((a.POOState || '').replace('US-', '')),
+      headline: text(`${a.IncidentName || 'Unnamed'} — ${sizeStr}, ${contained} contained`),
+      description: text(a.IncidentShortDescription || ''),
+      areaDesc: text((a.POOState || '').replace('US-', '')),
       color: sev.color,
       lat,
       lon,
@@ -103,7 +103,7 @@ async function fetch() {
       discovered: a.FireDiscoveryDateTime || null,
       acres,
       contained,
-      cause: sanitize(a.FireCause || 'Unknown')
+      cause: text(a.FireCause || 'Unknown')
     });
   }
 

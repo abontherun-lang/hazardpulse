@@ -17,7 +17,7 @@
 
 const axios = require('axios');
 const {
-  sanitize, isInUS, haversineKm,
+  text, isInUS, haversineKm,
   TTL, storeEvents, getActiveEvents, setLastUpdate, deleteWhereNoUSState, countActiveEvents
 } = require('./common');
 const nifc = require('./nifc');
@@ -124,8 +124,8 @@ function parseDetections(csvText, fires = [], volcs = []) {
       event: 'Wildfire',
       category: 'Wildfire',
       severity: sev.level,
-      headline: sanitize(`Active Fire — FRP ${frp.toFixed(1)} MW`),
-      description: sanitize(
+      headline: text(`Active Fire — FRP ${frp.toFixed(1)} MW`),
+      description: text(
         `Acquired ${acqDate} ${acqTime}UTC | ${daynight === 'D' ? 'Daytime' : 'Nighttime'} pass | ` +
         (basis === 'high-intensity' ? 'High-intensity detection' : 'Confirmed by nearby NIFC incident')
       ),
@@ -135,7 +135,7 @@ function parseDetections(csvText, fires = [], volcs = []) {
       lon,
       timestamp: fireTs,
       frp: frp.toFixed(1),
-      confidence: sanitize(confidence),
+      confidence: text(confidence),
       basis
     });
   }
