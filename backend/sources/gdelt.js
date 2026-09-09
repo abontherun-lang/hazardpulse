@@ -10,7 +10,7 @@
  * See docs/GDELT_NOISE_REDUCTION.md for rationale.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const AdmZip = require('adm-zip');
 const {
   text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
@@ -115,7 +115,7 @@ async function fetchSingleFile(url) {
       const ts = match[1];
       fileTs = new Date(`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}T${ts.slice(8,10)}:${ts.slice(10,12)}:${ts.slice(12,14)}Z`).getTime();
     }
-    const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+    const response = await http.get(url, { responseType: 'arraybuffer', timeout: 30000 });
     const zip = new AdmZip(Buffer.from(response.data));
     const entry = zip.getEntries().find(e => e.entryName.endsWith('.export.CSV'));
     if (!entry) return [];

@@ -6,7 +6,7 @@
  * dispatch incident format.
  */
 
-const axios = require('axios');
+const { http } = require('../../http');
 
 /**
  * Fetch incidents from an ArcGIS FeatureServer layer.
@@ -39,12 +39,12 @@ async function fetchIncidents(feed) {
 
   const where = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
 
-  // Build query string manually — axios and URLSearchParams both mangle
-  // the encoding in ways ArcGIS rejects (needs %20, not +)
+  // Build the query string by hand — the client's params serializer and
+  // URLSearchParams both encode spaces as '+', which ArcGIS rejects
   const outFields = Object.values(fields).filter(Boolean).join(',');
   const qs = `where=${encodeURIComponent(where)}&outFields=${encodeURIComponent(outFields)}&orderByFields=${encodeURIComponent(fields.time + ' DESC')}&resultRecordCount=500&f=json`;
 
-  const response = await axios.get(`${endpoint}?${qs}`, {
+  const response = await http.get(`${endpoint}?${qs}`, {
     timeout: 15000
   });
 

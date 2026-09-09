@@ -12,7 +12,7 @@
  * county centroid, then to the state centroid (geo.js).
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { pool } = require('../db');
 const { text, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
@@ -59,10 +59,7 @@ async function fetch() {
   console.log('\n🌩️  Fetching weather alerts from NOAA...');
   let response;
   try {
-    response = await axios.get(URL, {
-      headers: { 'User-Agent': process.env.USER_AGENT || '(HazardPulse/1.0, github.com/hazardpulse)' },
-      timeout: 10000
-    });
+    response = await http.get(URL, { headers: { Accept: 'application/geo+json' }, timeout: 10000 });
   } catch (e) {
     console.error(`   NOAA API error: ${e.message}`);
     throw e;
