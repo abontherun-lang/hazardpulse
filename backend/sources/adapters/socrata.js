@@ -10,7 +10,7 @@
  * query syntax so we only download crisis-level incidents.
  */
 
-const axios = require('axios');
+const { http } = require('../../http');
 
 /**
  * Fetch incidents from a Socrata feed.
@@ -59,7 +59,7 @@ async function fetchIncidents(feed) {
   };
   if (where) params['$where'] = where;
 
-  const response = await axios.get(url, {
+  const response = await http.get(url, {
     params,
     timeout: 15000,
     headers: { 'Accept': 'application/json' }

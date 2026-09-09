@@ -8,7 +8,8 @@
  * Data flow:
  *   External APIs → Source modules → PostGIS (persistent store)
  *   PostGIS → in-memory JSON (response cache, rebuilt after every fetch cycle)
- *   /api/all → serves from cache with ETag/304
+ *   /api/all → serves from cache; the ETag is a hash of the body, so a
+ *   client whose copy is current gets a 304
  *
  * Startup order matters: the HTTP server listens as soon as the database is
  * ready and serves whatever PostGIS already holds. The initial fetch of every
@@ -22,19 +23,22 @@
 
 try { require('dotenv').config(); } catch (_) {}
 const path = require('path');
+const { createHash } = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
-const axios = require('axios');
+const { http } = require('./http');
 const { connect: connectDb, pool } = require('./db');
-const { connect: connectRedis, client } = require('./redis-client');
 const { getAllActiveEvents } = require('./sources/common');
 const { registry: layerRegistry } = require('./layers');
 
 // ===================== DATA SOURCES =====================
 // Each source exports: { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
+// A source that reads another source's rows (FIRMS corroborates against
+// NIFC and volcano points) exports AFTER: [names] and fetches in the
+// second wave at startup.
 
 const SOURCES = [
   require('./sources/noaa'),
@@ -111,13 +115,7 @@ async function rebuildCache() {
     const { features, meta } = await getAllActiveEvents(SOURCES);
     const data = { type: 'FeatureCollection', features, meta };
     cachedResponse = JSON.stringify(data);
-    cachedEtag = `"${Date.now()}"`;
-
-    if (client.isOpen) {
-      await client.set('cache:all', cachedResponse);
-      await client.set('cache:etag', cachedEtag);
-    }
-
+    cachedEtag = `"${createHash('sha1').update(cachedResponse).digest('hex')}"`;
     console.log(`   Cache rebuilt: ${features.length} features`);
   } catch (e) {
     console.error('Cache rebuild failed:', e.message);
@@ -160,7 +158,7 @@ async function resolveServerLocation() {
     };
   } else {
     try {
-      const res = await axios.get('http://ip-api.com/json/?fields=lat,lon,city,regionName', { timeout: 5000 });
+      const res = await http.get('http://ip-api.com/json/?fields=lat,lon,city,regionName', { timeout: 5000 });
       if (res.data && res.data.lat) {
         serverLocation = {
           lat: res.data.lat,
@@ -219,7 +217,7 @@ async function fetchWeather() {
 
   try {
     const { lat, lon } = serverLocation;
-    const res = await axios.get(`https://wttr.in/${lat},${lon}?format=j1`, { timeout: 8000 });
+    const res = await http.get(`https://wttr.in/${lat},${lon}?format=j1`, { timeout: 8000 });
     const d = res.data;
     const cur = d.current_condition[0];
 
@@ -281,7 +279,6 @@ app.get('/api/health', async (req, res) => {
 
   res.status(pgOk ? 200 : 503).json({
     status: !pgOk ? 'degraded' : initialFetchDone ? 'healthy' : 'starting',
-    redis: client.isOpen ? 'connected' : 'disconnected',
     postgres: pgOk ? 'connected' : 'disconnected',
     initialFetch: initialFetchDone ? 'done' : 'pending',
     sources: SOURCES.map(s => s.SOURCE_NAME),
@@ -324,8 +321,6 @@ let server = null;
 async function start() {
   try {
     await connectDb();
-    await connectRedis();
-    console.log('✓ Redis connected');
 
     // Serve whatever PostGIS already holds, then open the port. Every
     // restart is a stale map, never a blank one.
@@ -357,7 +352,10 @@ async function start() {
       }
     }
 
-    await fetchSources(SOURCES, src => (src.PREFIX === 'gdelt' && gdeltHours) ? [gdeltHours] : []);
+    // Two waves: sources that corroborate against other sources' rows go second.
+    const argsFor = src => (src.PREFIX === 'gdelt' && gdeltHours) ? [gdeltHours] : [];
+    await fetchSources(SOURCES.filter(s => !s.AFTER), argsFor);
+    await fetchSources(SOURCES.filter(s => s.AFTER), argsFor);
     initialFetchDone = true;
 
     // Schedule fetches — group by cron to avoid duplicate timers
@@ -400,7 +398,6 @@ async function shutdown(signal) {
   setTimeout(() => process.exit(1), 8000).unref();
   try {
     if (server) await new Promise(resolve => server.close(resolve));
-    if (client.isOpen) await client.quit();
     await pool.end();
   } catch (e) {
     console.error('Shutdown error:', e.message);

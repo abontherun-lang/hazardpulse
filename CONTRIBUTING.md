@@ -28,9 +28,6 @@ docker run -d --name hazardpulse-db -p 5432:5432 \
   -e POSTGRES_DB=hazardpulse \
   postgis/postgis:16-3.4-alpine
 
-# Start Redis (required for response cache)
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-
 # Install and run
 cd backend
 cp ../.env.example .env

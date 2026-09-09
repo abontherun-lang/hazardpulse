@@ -1,7 +1,7 @@
 # ============================================================
 # HazardPulse — Docker Compose Configuration
 # ============================================================
-# Two containers: app (Node.js + Redis cache) and db (PostGIS).
+# Two containers: app (Node.js) and db (PostGIS).
 # Just run: docker compose up -d
 #
 # First startup downloads Census TIGER/Line boundary data (~2-3 min).
@@ -39,7 +39,6 @@ services:
     environment:
       # ── Core Settings (defaults work out of the box) ──
       - PORT=3000
-      - REDIS_URL=redis://localhost:6379
       - DATABASE_URL=postgresql://hazardpulse:hazardpulse@db:5432/hazardpulse
       - NODE_ENV=${NODE_ENV:-production}
 
@@ -54,9 +53,6 @@ services:
       # list of allowed origins. Leave empty to allow all.
       # Example: https://yourdomain.com,https://app.yourdomain.com
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-
-    volumes:
-      - redis_data:/data
 
     depends_on:
       db:
@@ -87,5 +83,4 @@ services:
       retries: 3
 
 volumes:
-  redis_data:
   pgdata:

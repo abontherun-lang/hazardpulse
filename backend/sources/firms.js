@@ -15,17 +15,17 @@
  * A post-store TIGER prune drops anything that doesn't fall in a US state.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const {
   text, isInUS, haversineKm,
-  TTL, storeEvents, getActiveEvents, setLastUpdate, deleteWhereNoUSState, countActiveEvents
+  TTL, storeEvents, getActiveEvents, getActivePoints, setLastUpdate, deleteWhereNoUSState, countActiveEvents
 } = require('./common');
-const nifc = require('./nifc');
-const volcano = require('./volcano');
 
 const SOURCE_NAME = 'NASA FIRMS';
 const CRON_SCHEDULE = '0 */3 * * *'; // every 3 hours
 const PREFIX = 'fire';
+// Corroboration reads these sources' stored rows; at startup they fetch first.
+const AFTER = ['NIFC', 'USGS Volcano'];
 const URL = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_USA_contiguous_and_Hawaii_24h.csv';
 
 // Tunable gate parameters (env-overridable).
@@ -147,19 +147,20 @@ async function fetch() {
   console.log('\n🔥 Fetching wildfire data from NASA FIRMS...');
   let response;
   try {
-    response = await axios.get(URL, { timeout: 30000 });
+    response = await http.get(URL, { timeout: 30000 });
   } catch (e) {
     console.error(`   FIRMS API error: ${e.message}`);
     throw e;
   }
 
-  // Corroboration inputs. If either source is unavailable we degrade
+  // Corroboration inputs come from PostGIS — the rows nifc.js and
+  // volcano.js stored on their own schedules. If a read fails we degrade
   // gracefully: an empty volcano list suppresses nothing; an empty fire list
   // means only the FRP auto-admit path can pass.
   let fires = [], volcs = [];
-  try { fires = await nifc.getActiveFirePoints(); }
+  try { fires = await getActivePoints('NIFC'); }
   catch (e) { console.warn(`   [firms] NIFC corroboration unavailable: ${e.message}`); }
-  try { volcs = await volcano.getElevatedPoints(); }
+  try { volcs = await getActivePoints('USGS Volcano'); }
   catch (e) { console.warn(`   [firms] volcano list unavailable: ${e.message}`); }
 
   const { total, events, admitFrp, admitNifc, dropVolcano, dropUncorroborated } =
@@ -192,4 +193,4 @@ async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, parseDetections, corrRadiusKm, severity };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, AFTER, parseDetections, corrRadiusKm, severity };

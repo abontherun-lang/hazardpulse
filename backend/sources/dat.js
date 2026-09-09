@@ -16,7 +16,7 @@
  * (falling back to the start time) and the code checks it again.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { text, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 
@@ -103,7 +103,7 @@ async function fetch() {
 
   let response;
   try {
-    response = await axios.get(`${URL}?${qs}`, { timeout: 25000 });
+    response = await http.get(`${URL}?${qs}`, { timeout: 25000 });
   } catch (e) {
     console.error(`   DAT API error: ${e.message}`);
     throw e;
