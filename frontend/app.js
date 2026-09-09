@@ -2,9 +2,10 @@
 
 const API_URL = '/api';
 
+// The one place text from the API is escaped. The backend stores it raw.
 function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (str === null || str === undefined || str === '') return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function safeColor(val, fallback) {
@@ -223,7 +224,7 @@ function passesTimeFilter(feature) {
 // ===================== ZOOM FILTER =====================
 
 function passesZoomFilter(feature, zoom) {
-  const { source, mag, frp, severity, category } = feature.properties;
+  const { source, mag, frp, severity } = feature.properties;
 
   if (source === 'USGS') {
     const m = parseFloat(mag) || 0;
@@ -247,7 +248,6 @@ function passesZoomFilter(feature, zoom) {
   if (source === 'USGS Volcano') return true; // sparse + important: always shown
   if (source === 'GDELT') {
     if (zoom <= 4) return severity === 'Extreme' || severity === 'Severe';
-    if (zoom <= 6) return severity !== 'Moderate' || category !== 'Fight';
     return true;
   }
   return true;
@@ -824,14 +824,14 @@ function _renderStatusList(counts) {
     html += `<div class="status-group-header">${group.label}</div>${rows.join('')}`;
   }
 
-  // Source freshness — flag stale sources (>2x their normal refresh interval)
+  // Source freshness — stale means older than twice the source's own
+  // refresh interval, which the API reports from its cron schedule.
   if (!search && allData.meta) {
-    const STALE_THRESHOLDS = { alert: 30, quake: 10, fire: 360, gdelt: 30, fema: 30, dispatch: 20, spc: 30 };
     let freshHtml = '<div class="status-group-header">Source Freshness</div>';
     for (const [prefix, m] of Object.entries(allData.meta)) {
       if (prefix === 'timeBounds' || !m.lastUpdate) continue;
       const ago = Math.round((Date.now() - new Date(m.lastUpdate).getTime()) / 60000);
-      const threshold = STALE_THRESHOLDS[prefix] || 30;
+      const threshold = m.refreshMinutes || 30;
       const stale = ago > threshold * 2;
       const label = m.source || prefix;
       const agoText = ago < 1 ? '<1m ago' : ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
@@ -927,8 +927,8 @@ async function refreshAlerts() {
   btn.disabled = true;
   btn.textContent = 'Refreshing...';
   try {
+    // The endpoint answers after every source has fetched and the cache is rebuilt.
     await fetch(`${API_URL}/fetch`, { method: 'POST' });
-    await new Promise(r => setTimeout(r, 1500));
     await loadAll();
   } catch (e) { console.error('Refresh error:', e); }
 

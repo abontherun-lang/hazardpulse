@@ -12,16 +12,18 @@
 
 const { pool } = require('../db');
 
-// ===================== SANITIZATION =====================
+// ===================== TEXT =====================
 
-function sanitize(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+/**
+ * Normalize a value from an upstream feed to plain text: string, control
+ * characters stripped, trimmed. Nothing is HTML-escaped here — the API
+ * serves JSON and the frontend escapes once, at render (esc() in app.js).
+ * Escaping at store time as well double-encodes: "Fisher's" became
+ * "Fisher&#x27;s" on the map before 2026-09-08.
+ */
+function text(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
 }
 
 function sanitizeUrl(str) {
@@ -62,6 +64,26 @@ const TTL = {
 // incidents (NIFC fires, volcanoes) stamp their event_time at ingestion so they
 // stay inside the window while they remain active. Env-overridable.
 const DISPLAY_WINDOW_HOURS = parseInt(process.env.DISPLAY_WINDOW_HOURS) || 72;
+
+// ===================== CRON =====================
+
+/**
+ * Minutes between runs for the cron shapes this app uses:
+ *   "*\/N * * * *" → N,  "M * * * *" → 60,  "0 *\/H * * *" → 60*H.
+ * Used for the source-freshness display; unknown shapes return null.
+ */
+function cronIntervalMinutes(expr) {
+  const [min, hour] = String(expr || '').trim().split(/\s+/);
+  if (!min) return null;
+  let m = min.match(/^\*\/(\d+)$/);
+  if (m) return parseInt(m[1]);
+  if (/^\d+$/.test(min)) {
+    if (hour === '*') return 60;
+    m = (hour || '').match(/^\*\/(\d+)$/);
+    if (m) return 60 * parseInt(m[1]);
+  }
+  return null;
+}
 
 // ===================== GEO HELPERS =====================
 
@@ -427,7 +449,8 @@ async function getAllActiveEvents(sources) {
     meta[src.PREFIX] = {
       count: sourceCounts[src.SOURCE_NAME] || 0,
       source: src.SOURCE_NAME,
-      lastUpdate: m.last_update || null
+      lastUpdate: m.last_update || null,
+      refreshMinutes: cronIntervalMinutes(src.CRON_SCHEDULE)
     };
   }
   meta.timeBounds = {
@@ -474,7 +497,7 @@ async function countActiveEvents(source) {
 }
 
 module.exports = {
-  sanitize, sanitizeUrl, isInUS, haversineKm, buildGeoJSON,
+  text, sanitizeUrl, isInUS, haversineKm, buildGeoJSON, cronIntervalMinutes,
   TTL, storeEvent, storeEvents,
   getActiveEvents, getAllActiveEvents,
   setLastUpdate, deleteWhereNoUSState, countActiveEvents
