@@ -18,7 +18,7 @@
 const { http } = require('../http');
 const {
   text, isInUS, haversineKm,
-  TTL, storeEvents, getActiveEvents, getActivePoints, setLastUpdate, deleteWhereNoUSState, countActiveEvents
+  TTL, storeEvents, getActivePoints, setLastUpdate, deleteWhereNoUSState, countActiveEvents
 } = require('./common');
 
 const SOURCE_NAME = 'NASA FIRMS';
@@ -189,8 +189,4 @@ async function fetch() {
   return { total, admitted: events.length, active, admitFrp, admitNifc, dropVolcano, dropUncorroborated, pruned };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, AFTER, parseDetections, corrRadiusKm, severity };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, AFTER, parseDetections, corrRadiusKm, severity };
