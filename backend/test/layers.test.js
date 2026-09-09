@@ -41,13 +41,9 @@ test('every category a source writes is registered', () => {
   for (const c of SOURCE_CATEGORIES) assert.ok(has(c), `source category "${c}" missing from layers.json`);
 });
 
-test('NOAA target events are registered', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'sources', 'noaa.js'), 'utf-8');
-  const m = src.match(/const TARGET_EVENTS = \[([\s\S]*?)\];/);
-  assert.ok(m, 'TARGET_EVENTS not found');
-  const events = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  assert.ok(events.length > 10);
-  for (const e of events) assert.ok(has(e), `NOAA event "${e}" missing from layers.json`);
+test('the alert policy fallback row exists', () => {
+  const { FALLBACK_TYPE } = require('../sources/alert-policy');
+  assert.ok(has(FALLBACK_TYPE));
 });
 
 test('presets reference real groups and types', () => {

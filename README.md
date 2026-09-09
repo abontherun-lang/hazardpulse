@@ -95,14 +95,14 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 
 | Source | Data | Update Interval | Cost |
 |--------|------|-----------------|------|
-| NOAA Weather API | Severe weather, floods, fire warnings, hurricanes, tsunami | 15 min | Free |
+| NOAA Weather API | Every NWS warning except marine products, plus selected watches and advisories | 15 min | Free |
 | USGS Earthquake API | Earthquake detections with magnitude and depth | 5 min | Free |
 | NASA FIRMS | Satellite wildfire detections (VIIRS sensor) | 3 hours | Free |
 | NIFC | Named wildfire incidents with acreage and containment | Hourly | Free |
 | NWS SPC | Post-event tornado damage surveys with EF ratings | 15 min | Free |
 | USGS Volcano API | Volcano alert levels (elevated only) | Hourly | Free |
 | GDELT Project | Armed violence, protests, use of force (news-derived) | 15 min | Free |
-| FEMA IPAWS | Evacuations, law enforcement, AMBER/Silver alerts | 15 min | Free |
+| FEMA IPAWS | Local-authority alerts: evacuations, law enforcement, AMBER/Silver (NWS-sent messages skipped, the NOAA feed has them) | 15 min | Free |
 | 911 Dispatch | Municipal CAD feeds (Seattle, SF, Austin, Indianapolis) | 10 min | Free |
 | Iowa State Mesonet | GOES satellite imagery (IR, visible, water vapor) | On demand | Free |
 | RainViewer | Precipitation radar | On demand | Free |
