@@ -5,16 +5,107 @@
       "label": "Weather Alerts",
       "hint": null,
       "rows": [
-        { "label": "Tornado Warning", "types": ["Tornado Warning"] },
-        { "label": "Tornado Watch", "types": ["Tornado Watch"] },
-        { "label": "Tornado Reports (NWS)", "types": ["Tornado Report"] },
-        { "label": "Thunderstorm Warning", "types": ["Severe Thunderstorm Warning"] },
-        { "label": "Thunderstorm Watch", "types": ["Severe Thunderstorm Watch"] },
-        { "label": "Flood Warning", "types": ["Flood Warning"] },
-        { "label": "Flood Watch", "types": ["Flood Watch"] },
-        { "label": "Special Weather", "types": ["Special Weather Statement"] },
-        { "label": "Winter Weather", "types": ["Winter Weather Advisory"] },
-        { "label": "Wind Advisory", "types": ["Wind Advisory"] }
+        {
+          "label": "Tornado Warning",
+          "types": [
+            "Tornado Warning"
+          ]
+        },
+        {
+          "label": "Tornado Watch",
+          "types": [
+            "Tornado Watch"
+          ]
+        },
+        {
+          "label": "Tornado Reports (NWS)",
+          "types": [
+            "Tornado Report"
+          ]
+        },
+        {
+          "label": "Thunderstorm Warning",
+          "types": [
+            "Severe Thunderstorm Warning"
+          ]
+        },
+        {
+          "label": "Thunderstorm Watch",
+          "types": [
+            "Severe Thunderstorm Watch"
+          ]
+        },
+        {
+          "label": "Flood Warning",
+          "types": [
+            "Flood Warning",
+            "Coastal Flood Warning",
+            "Lakeshore Flood Warning"
+          ]
+        },
+        {
+          "label": "Flash Flood Warning",
+          "types": [
+            "Flash Flood Warning"
+          ]
+        },
+        {
+          "label": "Flood Watch",
+          "types": [
+            "Flood Watch"
+          ]
+        },
+        {
+          "label": "Extreme Heat",
+          "types": [
+            "Extreme Heat Warning",
+            "Extreme Heat Watch",
+            "Heat Advisory"
+          ]
+        },
+        {
+          "label": "Extreme Cold",
+          "types": [
+            "Extreme Cold Warning",
+            "Freeze Warning",
+            "Extreme Cold Watch",
+            "Cold Weather Advisory"
+          ]
+        },
+        {
+          "label": "Special Weather",
+          "types": [
+            "Special Weather Statement"
+          ]
+        },
+        {
+          "label": "Winter Storms",
+          "types": [
+            "Blizzard Warning",
+            "Winter Storm Warning",
+            "Ice Storm Warning",
+            "Lake Effect Snow Warning",
+            "Snow Squall Warning",
+            "Avalanche Warning",
+            "Winter Storm Watch",
+            "Winter Weather Advisory"
+          ]
+        },
+        {
+          "label": "High Wind",
+          "types": [
+            "Extreme Wind Warning",
+            "High Wind Warning",
+            "Dust Storm Warning",
+            "Wind Advisory"
+          ]
+        },
+        {
+          "label": "Other NWS Alerts",
+          "types": [
+            "Other NWS Alert"
+          ]
+        }
       ]
     },
     {
@@ -22,12 +113,51 @@
       "label": "Hurricanes / Tropical",
       "hint": "Active during hurricane season (Jun-Nov)",
       "rows": [
-        { "label": "Hurricane Warning", "types": ["Hurricane Warning"] },
-        { "label": "Hurricane Watch", "types": ["Hurricane Watch"] },
-        { "label": "Tropical Storm Warning", "types": ["Tropical Storm Warning"] },
-        { "label": "Tropical Storm Watch", "types": ["Tropical Storm Watch"] },
-        { "label": "Storm Surge Warning", "types": ["Storm Surge Warning"] },
-        { "label": "Storm Surge Watch", "types": ["Storm Surge Watch"] }
+        {
+          "label": "Hurricane Warning",
+          "types": [
+            "Hurricane Warning",
+            "Typhoon Warning"
+          ]
+        },
+        {
+          "label": "Hurricane Watch",
+          "types": [
+            "Hurricane Watch",
+            "Typhoon Watch"
+          ]
+        },
+        {
+          "label": "Tropical Storm Warning",
+          "types": [
+            "Tropical Storm Warning"
+          ]
+        },
+        {
+          "label": "Tropical Storm Watch",
+          "types": [
+            "Tropical Storm Watch"
+          ]
+        },
+        {
+          "label": "Storm Surge Warning",
+          "types": [
+            "Storm Surge Warning"
+          ]
+        },
+        {
+          "label": "Storm Surge Watch",
+          "types": [
+            "Storm Surge Watch"
+          ]
+        },
+        {
+          "label": "Local Statements",
+          "types": [
+            "Hurricane Local Statement",
+            "Tropical Cyclone Local Statement"
+          ]
+        }
       ]
     },
     {
@@ -35,11 +165,36 @@
       "label": "Earthquakes / Tsunami",
       "hint": "Size = magnitude. Zoom in for smaller quakes.",
       "rows": [
-        { "label": "Earthquakes (USGS)", "types": ["Earthquake"] },
-        { "label": "Earthquake Warning", "types": ["Earthquake Warning"] },
-        { "label": "Tsunami Warning", "types": ["Tsunami Warning"] },
-        { "label": "Tsunami Watch", "types": ["Tsunami Watch"] },
-        { "label": "Tsunami Advisory", "types": ["Tsunami Advisory"] }
+        {
+          "label": "Earthquakes (USGS)",
+          "types": [
+            "Earthquake"
+          ]
+        },
+        {
+          "label": "Earthquake Warning",
+          "types": [
+            "Earthquake Warning"
+          ]
+        },
+        {
+          "label": "Tsunami Warning",
+          "types": [
+            "Tsunami Warning"
+          ]
+        },
+        {
+          "label": "Tsunami Watch",
+          "types": [
+            "Tsunami Watch"
+          ]
+        },
+        {
+          "label": "Tsunami Advisory",
+          "types": [
+            "Tsunami Advisory"
+          ]
+        }
       ]
     },
     {
@@ -47,10 +202,36 @@
       "label": "Wildfires",
       "hint": "Satellite hits filtered to high-intensity or NIFC-confirmed fires. Named fires sized by acreage.",
       "rows": [
-        { "label": "Active Fires (NASA)", "types": ["Wildfire"] },
-        { "label": "Named Fires (NIFC)", "types": ["Wildfire Incident"] },
-        { "label": "Red Flag Warning", "types": ["Red Flag Warning"] },
-        { "label": "Fire Weather Watch", "types": ["Fire Weather Watch"] }
+        {
+          "label": "Active Fires (NASA)",
+          "types": [
+            "Wildfire"
+          ]
+        },
+        {
+          "label": "Named Fires (NIFC)",
+          "types": [
+            "Wildfire Incident"
+          ]
+        },
+        {
+          "label": "Red Flag Warning",
+          "types": [
+            "Red Flag Warning"
+          ]
+        },
+        {
+          "label": "Fire Warning (NWS)",
+          "types": [
+            "Fire Warning"
+          ]
+        },
+        {
+          "label": "Fire Weather Watch",
+          "types": [
+            "Fire Weather Watch"
+          ]
+        }
       ]
     },
     {
@@ -58,16 +239,56 @@
       "label": "Volcanoes",
       "hint": "US volcanoes above normal. Color = aviation code (yellow/orange/red).",
       "rows": [
-        { "label": "Elevated Alert (USGS)", "types": ["Volcano"] }
+        {
+          "label": "Elevated Alert (USGS)",
+          "types": [
+            "Volcano"
+          ]
+        },
+        {
+          "label": "Volcano / Ashfall (NWS)",
+          "types": [
+            "Volcano Warning",
+            "Ashfall Warning",
+            "Ashfall Advisory"
+          ]
+        }
       ]
     },
     {
       "key": "emergency",
       "label": "Emergency Alerts",
-      "hint": "FEMA IPAWS — verified government alerts",
+      "hint": "FEMA IPAWS local authorities, plus civil messages relayed by the NWS",
       "rows": [
-        { "label": "Evacuations / Law Enforcement", "types": ["Official Alerts"] },
-        { "label": "Missing Persons / AMBER", "types": ["Missing Persons"] }
+        {
+          "label": "Evacuations / Law Enforcement",
+          "types": [
+            "Official Alerts"
+          ]
+        },
+        {
+          "label": "Missing Persons / AMBER",
+          "types": [
+            "Missing Persons",
+            "Child Abduction Emergency"
+          ]
+        },
+        {
+          "label": "Civil / Evacuation (NWS)",
+          "types": [
+            "Evacuation Immediate",
+            "Civil Danger Warning",
+            "Civil Emergency Message",
+            "Shelter In Place Warning",
+            "Hazardous Materials Warning",
+            "Law Enforcement Warning",
+            "Local Area Emergency",
+            "911 Telephone Outage Emergency",
+            "Nuclear Power Plant Warning",
+            "Radiological Hazard Warning",
+            "Blue Alert"
+          ]
+        }
       ]
     },
     {
@@ -75,10 +296,30 @@
       "label": "911 Dispatch",
       "hint": null,
       "rows": [
-        { "label": "Structure Fires", "types": ["Dispatch Fire"] },
-        { "label": "Violent Crimes", "types": ["Dispatch Violence"] },
-        { "label": "Major Accidents", "types": ["Dispatch Accident"] },
-        { "label": "Hazmat", "types": ["Dispatch Hazmat"] }
+        {
+          "label": "Structure Fires",
+          "types": [
+            "Dispatch Fire"
+          ]
+        },
+        {
+          "label": "Violent Crimes",
+          "types": [
+            "Dispatch Violence"
+          ]
+        },
+        {
+          "label": "Major Accidents",
+          "types": [
+            "Dispatch Accident"
+          ]
+        },
+        {
+          "label": "Hazmat",
+          "types": [
+            "Dispatch Hazmat"
+          ]
+        }
       ]
     },
     {
@@ -86,69 +327,406 @@
       "label": "Conflict & Unrest",
       "hint": "GDELT — news-derived, multi-source confirmed",
       "rows": [
-        { "label": "Protests / Demonstrations", "types": ["Protest"] },
-        { "label": "Shootings / Explosions", "types": ["Armed Violence"] },
-        { "label": "Use of Force", "types": ["Use of Force"] }
+        {
+          "label": "Protests / Demonstrations",
+          "types": [
+            "Protest"
+          ]
+        },
+        {
+          "label": "Shootings / Explosions",
+          "types": [
+            "Armed Violence"
+          ]
+        },
+        {
+          "label": "Use of Force",
+          "types": [
+            "Use of Force"
+          ]
+        }
       ]
     }
   ],
-
   "types": {
-    "Tornado Warning":            { "color": "#0D47A1", "style": "fill" },
-    "Tornado Watch":              { "color": "#1565C0", "style": "dashed" },
-    "Tornado Report":             { "color": "#0D47A1", "style": "fill", "cluster": true },
-    "Severe Thunderstorm Warning":{ "color": "#1976D2", "style": "fill" },
-    "Severe Thunderstorm Watch":  { "color": "#42A5F5", "style": "dashed" },
-    "Flood Warning":              { "color": "#1A237E", "style": "fill" },
-    "Flood Watch":                { "color": "#3949AB", "style": "dashed" },
-    "Special Weather Statement":  { "color": "#546E7A", "style": "dashed" },
-    "Winter Weather Advisory":    { "color": "#78909C", "style": "dashed" },
-    "Wind Advisory":              { "color": "#607D8B", "style": "dashed" },
-
-    "Hurricane Warning":          { "color": "#006064", "style": "fill" },
-    "Hurricane Watch":            { "color": "#00838F", "style": "dashed" },
-    "Tropical Storm Warning":     { "color": "#0097A7", "style": "fill" },
-    "Tropical Storm Watch":       { "color": "#26C6DA", "style": "dashed" },
-    "Storm Surge Warning":        { "color": "#004D40", "style": "fill" },
-    "Storm Surge Watch":          { "color": "#00897B", "style": "dashed" },
-
-    "Earthquake":                 { "color": "#6D4C41", "style": "dot", "cluster": true },
-    "Earthquake Warning":         { "color": "#795548", "style": "fill" },
-    "Tsunami Warning":            { "color": "#01579B", "style": "fill" },
-    "Tsunami Watch":              { "color": "#0277BD", "style": "dashed" },
-    "Tsunami Advisory":           { "color": "#0288D1", "style": "dashed" },
-
-    "Wildfire":                   { "color": "#FF8F00", "style": "fill", "border": "#E65100", "cluster": true },
-    "Wildfire Incident":          { "color": "#D84315", "style": "dot", "cluster": true },
-    "Red Flag Warning":           { "color": "#E65100", "style": "fill" },
-    "Fire Weather Watch":         { "color": "#FF8F00", "style": "dashed" },
-
-    "Volcano":                    { "color": "#E65100", "style": "dot" },
-
-    "Official Alerts":            { "color": "#D50000", "style": "fill" },
-    "Missing Persons":            { "color": "#FF6F00", "style": "fill" },
-
-    "Dispatch Fire":              { "color": "#FF6D00", "style": "fill", "cluster": true },
-    "Dispatch Violence":          { "color": "#D500F9", "style": "fill", "cluster": true },
-    "Dispatch Accident":          { "color": "#FFAB00", "style": "fill", "cluster": true },
-    "Dispatch Hazmat":            { "color": "#00E676", "style": "fill", "cluster": true },
-
-    "Protest":                    { "color": "#F9A825", "style": "fill", "cluster": true },
-    "Armed Violence":             { "color": "#B71C1C", "style": "fill", "cluster": true },
-    "Use of Force":               { "color": "#C62828", "style": "fill", "cluster": true }
+    "Tornado Warning": {
+      "color": "#0D47A1",
+      "style": "fill"
+    },
+    "Tornado Watch": {
+      "color": "#1565C0",
+      "style": "dashed"
+    },
+    "Tornado Report": {
+      "color": "#0D47A1",
+      "style": "fill",
+      "cluster": true
+    },
+    "Severe Thunderstorm Warning": {
+      "color": "#1976D2",
+      "style": "fill"
+    },
+    "Severe Thunderstorm Watch": {
+      "color": "#42A5F5",
+      "style": "dashed"
+    },
+    "Flood Warning": {
+      "color": "#1A237E",
+      "style": "fill"
+    },
+    "Flood Watch": {
+      "color": "#3949AB",
+      "style": "dashed"
+    },
+    "Special Weather Statement": {
+      "color": "#546E7A",
+      "style": "dashed"
+    },
+    "Winter Weather Advisory": {
+      "color": "#78909C",
+      "style": "dashed"
+    },
+    "Wind Advisory": {
+      "color": "#607D8B",
+      "style": "dashed"
+    },
+    "Hurricane Warning": {
+      "color": "#006064",
+      "style": "fill"
+    },
+    "Hurricane Watch": {
+      "color": "#00838F",
+      "style": "dashed"
+    },
+    "Tropical Storm Warning": {
+      "color": "#0097A7",
+      "style": "fill"
+    },
+    "Tropical Storm Watch": {
+      "color": "#26C6DA",
+      "style": "dashed"
+    },
+    "Storm Surge Warning": {
+      "color": "#004D40",
+      "style": "fill"
+    },
+    "Storm Surge Watch": {
+      "color": "#00897B",
+      "style": "dashed"
+    },
+    "Earthquake": {
+      "color": "#6D4C41",
+      "style": "dot",
+      "cluster": true
+    },
+    "Earthquake Warning": {
+      "color": "#795548",
+      "style": "fill"
+    },
+    "Tsunami Warning": {
+      "color": "#01579B",
+      "style": "fill"
+    },
+    "Tsunami Watch": {
+      "color": "#0277BD",
+      "style": "dashed"
+    },
+    "Tsunami Advisory": {
+      "color": "#0288D1",
+      "style": "dashed"
+    },
+    "Wildfire": {
+      "color": "#FF8F00",
+      "style": "fill",
+      "border": "#E65100",
+      "cluster": true
+    },
+    "Wildfire Incident": {
+      "color": "#D84315",
+      "style": "dot",
+      "cluster": true
+    },
+    "Red Flag Warning": {
+      "color": "#E65100",
+      "style": "fill"
+    },
+    "Fire Weather Watch": {
+      "color": "#FF8F00",
+      "style": "dashed"
+    },
+    "Volcano": {
+      "color": "#E65100",
+      "style": "dot"
+    },
+    "Official Alerts": {
+      "color": "#D50000",
+      "style": "fill"
+    },
+    "Missing Persons": {
+      "color": "#FF6F00",
+      "style": "fill"
+    },
+    "Dispatch Fire": {
+      "color": "#FF6D00",
+      "style": "fill",
+      "cluster": true
+    },
+    "Dispatch Violence": {
+      "color": "#D500F9",
+      "style": "fill",
+      "cluster": true
+    },
+    "Dispatch Accident": {
+      "color": "#FFAB00",
+      "style": "fill",
+      "cluster": true
+    },
+    "Dispatch Hazmat": {
+      "color": "#00E676",
+      "style": "fill",
+      "cluster": true
+    },
+    "Protest": {
+      "color": "#F9A825",
+      "style": "fill",
+      "cluster": true
+    },
+    "Armed Violence": {
+      "color": "#B71C1C",
+      "style": "fill",
+      "cluster": true
+    },
+    "Use of Force": {
+      "color": "#C62828",
+      "style": "fill",
+      "cluster": true
+    },
+    "Coastal Flood Warning": {
+      "color": "#283593",
+      "style": "fill"
+    },
+    "Lakeshore Flood Warning": {
+      "color": "#283593",
+      "style": "fill"
+    },
+    "Flash Flood Warning": {
+      "color": "#303F9F",
+      "style": "fill"
+    },
+    "Extreme Heat Warning": {
+      "color": "#D32F2F",
+      "style": "fill"
+    },
+    "Extreme Heat Watch": {
+      "color": "#E57373",
+      "style": "dashed"
+    },
+    "Heat Advisory": {
+      "color": "#EF9A9A",
+      "style": "dashed"
+    },
+    "Extreme Cold Warning": {
+      "color": "#29B6F6",
+      "style": "fill"
+    },
+    "Freeze Warning": {
+      "color": "#4DD0E1",
+      "style": "fill"
+    },
+    "Extreme Cold Watch": {
+      "color": "#81D4FA",
+      "style": "dashed"
+    },
+    "Cold Weather Advisory": {
+      "color": "#B3E5FC",
+      "style": "dashed"
+    },
+    "Blizzard Warning": {
+      "color": "#7986CB",
+      "style": "fill"
+    },
+    "Winter Storm Warning": {
+      "color": "#9FA8DA",
+      "style": "fill"
+    },
+    "Ice Storm Warning": {
+      "color": "#B39DDB",
+      "style": "fill"
+    },
+    "Lake Effect Snow Warning": {
+      "color": "#9FA8DA",
+      "style": "fill"
+    },
+    "Snow Squall Warning": {
+      "color": "#7986CB",
+      "style": "fill"
+    },
+    "Avalanche Warning": {
+      "color": "#B0BEC5",
+      "style": "fill"
+    },
+    "Winter Storm Watch": {
+      "color": "#9FA8DA",
+      "style": "dashed"
+    },
+    "Extreme Wind Warning": {
+      "color": "#263238",
+      "style": "fill"
+    },
+    "High Wind Warning": {
+      "color": "#455A64",
+      "style": "fill"
+    },
+    "Dust Storm Warning": {
+      "color": "#8D6E63",
+      "style": "fill"
+    },
+    "Other NWS Alert": {
+      "color": "#90A4AE",
+      "style": "fill"
+    },
+    "Typhoon Warning": {
+      "color": "#006064",
+      "style": "fill"
+    },
+    "Typhoon Watch": {
+      "color": "#00838F",
+      "style": "dashed"
+    },
+    "Hurricane Local Statement": {
+      "color": "#4DB6AC",
+      "style": "dashed"
+    },
+    "Tropical Cyclone Local Statement": {
+      "color": "#4DB6AC",
+      "style": "dashed"
+    },
+    "Volcano Warning": {
+      "color": "#BF360C",
+      "style": "fill"
+    },
+    "Ashfall Warning": {
+      "color": "#8D6E63",
+      "style": "fill"
+    },
+    "Ashfall Advisory": {
+      "color": "#A1887F",
+      "style": "dashed"
+    },
+    "Fire Warning": {
+      "color": "#BF360C",
+      "style": "fill"
+    },
+    "Child Abduction Emergency": {
+      "color": "#FF6F00",
+      "style": "fill"
+    },
+    "Evacuation Immediate": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Civil Danger Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Civil Emergency Message": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Shelter In Place Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Hazardous Materials Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Law Enforcement Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Local Area Emergency": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "911 Telephone Outage Emergency": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Nuclear Power Plant Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Radiological Hazard Warning": {
+      "color": "#C62828",
+      "style": "fill"
+    },
+    "Blue Alert": {
+      "color": "#C62828",
+      "style": "fill"
+    }
   },
-
   "presets": {
-    "all":      { "groups": "*", "satellite": true },
-    "weather":  { "groups": ["weather", "tropical"] },
-    "seismic":  { "groups": ["earthquake", "volcano"] },
-    "fire":     { "groups": ["wildfire"] },
-    "conflict": { "groups": ["emergency", "dispatch", "conflict"] },
-    "critical": { "types": [
-      "Tornado Warning", "Tornado Report", "Hurricane Warning", "Storm Surge Warning", "Tsunami Warning",
-      "Earthquake", "Official Alerts", "Missing Persons", "Armed Violence",
-      "Wildfire", "Wildfire Incident", "Volcano", "Red Flag Warning",
-      "Dispatch Fire", "Dispatch Violence", "Dispatch Hazmat"
-    ] }
+    "all": {
+      "groups": "*",
+      "satellite": true
+    },
+    "weather": {
+      "groups": [
+        "weather",
+        "tropical"
+      ]
+    },
+    "seismic": {
+      "groups": [
+        "earthquake",
+        "volcano"
+      ]
+    },
+    "fire": {
+      "groups": [
+        "wildfire"
+      ]
+    },
+    "conflict": {
+      "groups": [
+        "emergency",
+        "dispatch",
+        "conflict"
+      ]
+    },
+    "critical": {
+      "types": [
+        "Tornado Warning",
+        "Tornado Report",
+        "Hurricane Warning",
+        "Storm Surge Warning",
+        "Tsunami Warning",
+        "Earthquake",
+        "Official Alerts",
+        "Missing Persons",
+        "Armed Violence",
+        "Wildfire",
+        "Wildfire Incident",
+        "Volcano",
+        "Red Flag Warning",
+        "Dispatch Fire",
+        "Dispatch Violence",
+        "Dispatch Hazmat",
+        "Flash Flood Warning",
+        "Extreme Heat Warning",
+        "Extreme Wind Warning",
+        "Fire Warning",
+        "Volcano Warning",
+        "Child Abduction Emergency",
+        "Evacuation Immediate",
+        "Civil Danger Warning",
+        "Civil Emergency Message",
+        "Shelter In Place Warning",
+        "Hazardous Materials Warning",
+        "Law Enforcement Warning",
+        "Local Area Emergency"
+      ]
+    }
   }
 }

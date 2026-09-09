@@ -5,80 +5,32 @@
  * Auth: Requires User-Agent with contact info
  * Rate: No published limit. We poll every 15 min (NOAA recommended).
  *
- * Alerts without geometry are resolved to county polygons via SAME/FIPS codes
- * joined against TIGER county boundaries in PostGIS. Multiple counties are
- * merged into a single MultiPolygon with ST_Union.
+ * Which alerts are shown is decided by alert-policy.js (every Warning except
+ * marine products, plus an allow-list of watches and advisories). Alerts
+ * without geometry are resolved to county polygons via SAME/FIPS codes
+ * joined against TIGER county boundaries in PostGIS, then to a bundled
+ * county centroid, then to the state centroid (geo.js).
  */
 
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const { pool } = require('../db');
 const { text, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
-
-// Load UGC centroids for fallback geocoding when TIGER lookup fails
-let ugcCentroids = {};
-try {
-  ugcCentroids = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ugc_centroids.json'), 'utf-8'));
-} catch (_) {}
-
-// FIPS state codes to state abbreviations (for UGC key construction)
-const FIPS_TO_STATE = {
-  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
-  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
-  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
-  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
-  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
-  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
-  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
-  '55':'WI','56':'WY'
-};
-
-// State centroids for statewide alerts (county FIPS = 000)
-const STATE_CENTROIDS = {
-  'AL':[32.8,-86.8],'AK':[64.2,-152.5],'AZ':[34.0,-111.1],'AR':[34.8,-92.2],
-  'CA':[36.8,-119.4],'CO':[39.0,-105.5],'CT':[41.6,-72.7],'DE':[39.0,-75.5],
-  'DC':[38.9,-77.0],'FL':[27.8,-81.7],'GA':[32.7,-83.5],'HI':[19.9,-155.6],
-  'ID':[44.1,-114.7],'IL':[40.3,-89.0],'IN':[40.3,-86.1],'IA':[42.0,-93.2],
-  'KS':[38.5,-98.0],'KY':[37.8,-84.3],'LA':[30.5,-91.2],'ME':[45.3,-69.4],
-  'MD':[39.0,-76.6],'MA':[42.4,-71.4],'MI':[44.3,-85.6],'MN':[46.4,-94.6],
-  'MS':[32.7,-89.7],'MO':[38.5,-92.3],'MT':[46.8,-110.4],'NE':[41.1,-98.3],
-  'NV':[38.8,-116.4],'NH':[43.2,-71.6],'NJ':[40.1,-74.5],'NM':[34.0,-105.9],
-  'NY':[43.0,-75.5],'NC':[35.8,-79.0],'ND':[47.5,-100.5],'OH':[40.4,-82.9],
-  'OK':[35.0,-97.1],'OR':[43.8,-120.6],'PA':[41.2,-77.2],'RI':[41.6,-71.5],
-  'SC':[34.0,-81.0],'SD':[43.9,-99.9],'TN':[35.5,-86.0],'TX':[31.0,-100.0],
-  'UT':[39.3,-111.1],'VT':[44.0,-72.7],'VA':[37.8,-78.2],'WA':[47.4,-120.7],
-  'WV':[38.5,-80.5],'WI':[43.8,-89.5],'WY':[43.1,-107.6]
-};
+const { keepAlert, categoryFor } = require('./alert-policy');
+const { sameCodesToPoint } = require('./geo');
 
 const SOURCE_NAME = 'NOAA';
 const CRON_SCHEDULE = '*/15 * * * *'; // every 15 minutes
 const PREFIX = 'alert';
 const URL = 'https://api.weather.gov/alerts/active';
 
-const TARGET_EVENTS = [
-  'Tornado Warning', 'Tornado Watch',
-  'Severe Thunderstorm Warning', 'Severe Thunderstorm Watch',
-  'Flood Warning', 'Flood Watch',
-  'Red Flag Warning', 'Fire Weather Watch',
-  'Hurricane Warning', 'Hurricane Watch',
-  'Tropical Storm Warning', 'Tropical Storm Watch',
-  'Storm Surge Warning', 'Storm Surge Watch',
-  'Tsunami Warning', 'Tsunami Watch', 'Tsunami Advisory',
-  'Earthquake Warning',
-  'Special Weather Statement', 'Winter Weather Advisory', 'Wind Advisory'
-];
-
 /**
  * Resolve SAME/FIPS codes to a merged county polygon via TIGER boundaries.
- * SAME code format: 0SSCCC (leading 0 + 2-digit state FIPS + 3-digit county FIPS)
  * Returns a GeoJSON geometry object, or null if no counties match.
  */
 async function resolveCountyPolygons(sameCodes) {
   if (!sameCodes || sameCodes.length === 0) return null;
 
-  // Parse SAME codes into (statefp, countyfp) pairs
   const pairs = [];
   for (const code of sameCodes) {
     if (code.length !== 6) continue;
@@ -87,7 +39,6 @@ async function resolveCountyPolygons(sameCodes) {
     if (countyfp === '000') continue; // statewide — skip, too broad
     pairs.push({ statefp, countyfp });
   }
-
   if (pairs.length === 0) return null;
 
   // Build a merged, simplified polygon from all matching counties.
@@ -102,35 +53,6 @@ async function resolveCountyPolygons(sameCodes) {
   `, params);
 
   return result.rows[0]?.geometry || null;
-}
-
-/**
- * Fallback: resolve SAME codes to a point via UGC centroids.
- * Uses the first code that matches. Returns a GeoJSON Point or null.
- */
-function resolveUgcCentroid(sameCodes) {
-  if (!sameCodes || sameCodes.length === 0) return null;
-
-  for (const code of sameCodes) {
-    if (code.length !== 6) continue;
-    const stateFips = code.slice(1, 3);
-    const countyFips = code.slice(3, 6);
-    const state = FIPS_TO_STATE[stateFips];
-    if (!state) continue;
-
-    // County-level centroid
-    if (countyFips !== '000') {
-      const ugc = `${state}C${countyFips}`;
-      const coords = ugcCentroids[ugc];
-      if (coords) return { type: 'Point', coordinates: [coords[1], coords[0]] };
-    }
-
-    // Statewide alert — use state centroid
-    const stateCoords = STATE_CENTROIDS[state];
-    if (stateCoords) return { type: 'Point', coordinates: [stateCoords[1], stateCoords[0]] };
-  }
-
-  return null;
 }
 
 async function fetch() {
@@ -149,10 +71,10 @@ async function fetch() {
   const allAlerts = response.data.features || [];
   console.log(`   Received ${allAlerts.length} total alerts`);
 
-  const filtered = allAlerts.filter(a => TARGET_EVENTS.includes(a.properties.event));
-  console.log(`   Filtered to ${filtered.length} relevant alerts`);
+  const filtered = allAlerts.filter(a => keepAlert(a.properties));
+  console.log(`   Kept ${filtered.length} by alert policy`);
 
-  let stored = 0, polygonResolved = 0, centroidFallback = 0;
+  let stored = 0, polygonResolved = 0, centroidFallback = 0, fallbackRow = 0;
   for (const alert of filtered) {
     try {
       const id = alert.id || alert.properties.id;
@@ -161,7 +83,7 @@ async function fetch() {
       // Resolve geometry (3-tier fallback):
       // 1. Use API-provided polygon (rare, ~5% of alerts)
       // 2. Build polygon from SAME/FIPS codes via TIGER county boundaries
-      // 3. Fall back to UGC centroid point (county or state level)
+      // 3. Fall back to a county or state centroid point
       let geometry = alert.geometry;
       const sameCodes = props.geocode && props.geocode.SAME ? props.geocode.SAME : [];
 
@@ -169,30 +91,34 @@ async function fetch() {
         geometry = await resolveCountyPolygons(sameCodes);
         if (geometry) polygonResolved++;
       }
-
       if (!geometry) {
-        geometry = resolveUgcCentroid(sameCodes);
+        geometry = sameCodesToPoint(sameCodes);
         if (geometry) centroidFallback++;
       }
-
       if (!geometry) continue;
+
+      const event = text(props.event);
+      const category = categoryFor(event);
+      if (category !== event) fallbackRow++;
 
       const alertTime = props.effective || props.onset || props.sent || new Date().toISOString();
       const expiresAt = props.expires ? new Date(props.expires) : new Date(Date.now() + 3600000);
       const ttl = Math.max(60, Math.floor((expiresAt - Date.now()) / 1000));
 
       await storeEvent(SOURCE_NAME, id, {
-        event: text(props.event),
-        category: text(props.event),
+        event,
+        category,
         severity: text(props.severity) || 'Unknown',
         headline: text(props.headline),
         description: text(props.description),
         areaDesc: text(props.areaDesc),
-        color: colorOf(props.event),
+        color: colorOf(category),
         sourceUrl: props['@id'] || '',
         timestamp: new Date(alertTime).getTime(),
         geometry,
-        expires: props.expires || ''
+        expires: props.expires || '',
+        urgency: text(props.urgency),
+        instruction: text(props.instruction).slice(0, 500)
       }, ttl);
       stored++;
     } catch (e) {
@@ -200,7 +126,7 @@ async function fetch() {
     }
   }
 
-  console.log(`   ✓ Stored ${stored} weather alerts (${polygonResolved} county polygons, ${centroidFallback} centroid fallbacks)`);
+  console.log(`   ✓ Stored ${stored} weather alerts (${polygonResolved} county polygons, ${centroidFallback} centroid fallbacks, ${fallbackRow} in the fallback row)`);
   await setLastUpdate(SOURCE_NAME, stored);
   return { total: allAlerts.length, stored };
 }
@@ -209,4 +135,4 @@ async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, resolveUgcCentroid };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
