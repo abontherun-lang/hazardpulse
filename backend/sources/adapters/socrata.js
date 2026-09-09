@@ -17,40 +17,43 @@ const { http } = require('../../http');
  * @param {object} feed — config entry from dispatch-feeds.json
  * @returns {Array<{id, type, category, lat, lon, time, address, city}>}
  */
-async function fetchIncidents(feed) {
-  const { domain, dataset, fields, crisisTypes, priorityFilter, categoryMap, hoursBack } = feed;
-
-  // Build $where clause
+/**
+ * The SoQL $where for a feed. Pure; `now` is injectable for tests.
+ * Socrata floating_timestamps may be local time (not UTC), so the window
+ * is padded to 24h and row expiry handles the rest. Over-fetches slightly
+ * but avoids timezone mismatch issues.
+ */
+function buildWhere(feed, now = Date.now()) {
+  const { fields, crisisTypes, priorityFilter } = feed;
   const whereParts = [];
 
-  // Time filter — Socrata floating_timestamps may be local time (not UTC),
-  // so we pad the query window by 24h and rely on Redis TTL for actual expiry.
-  // This over-fetches slightly but avoids timezone mismatch issues.
   if (fields.time) {
-    const since = new Date(Date.now() - 24 * 3600000).toISOString().replace('Z', '');
+    const since = new Date(now - 24 * 3600000).toISOString().replace('Z', '');
     whereParts.push(`${fields.time} > '${since}'`);
   }
 
-  // Priority filter
   if (priorityFilter) {
-    const vals = priorityFilter.values.map(v => `'${v}'`).join(',');
+    const vals = priorityFilter.values.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',');
     whereParts.push(`${priorityFilter.field} IN (${vals})`);
   }
 
-  // Type whitelist (can combine with priority for tighter filtering)
   if (crisisTypes && crisisTypes.length > 0) {
     const escaped = crisisTypes.map(t => `'${t.replace(/'/g, "''")}'`).join(',');
     whereParts.push(`${fields.type} IN (${escaped})`);
   }
 
-  // Require coordinates
   if (fields.lat && fields.lon) {
     whereParts.push(`${fields.lat} IS NOT NULL`);
   } else if (fields.geoPoint) {
     whereParts.push(`${fields.geoPoint} IS NOT NULL`);
   }
 
-  const where = whereParts.length > 0 ? whereParts.join(' AND ') : '';
+  return whereParts.join(' AND ');
+}
+
+async function fetchIncidents(feed) {
+  const { domain, dataset, fields } = feed;
+  const where = buildWhere(feed);
   const url = `https://${domain}/resource/${dataset}.json`;
 
   const params = {
@@ -115,4 +118,4 @@ function normalize(row, feed) {
   };
 }
 
-module.exports = { fetchIncidents, normalize };
+module.exports = { fetchIncidents, normalize, buildWhere };

@@ -27,7 +27,7 @@ const SEV   = { RED: 'Extreme', ORANGE: 'Severe', YELLOW: 'Moderate' };
 function isElevated(p) {
   const a = (p.alertLevel || '').toUpperCase();
   const c = (p.colorCode || '').toUpperCase();
-  return a && a !== 'NORMAL' && a !== 'UNASSIGNED' && c !== 'GREEN' && c !== '';
+  return Boolean(a) && a !== 'NORMAL' && a !== 'UNASSIGNED' && c !== 'GREEN' && c !== '';
 }
 
 async function fetchRaw() {
