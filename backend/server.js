@@ -3,12 +3,16 @@
  *
  * Serves cached hazard data from multiple sources.
  * Each source is a module in sources/ with a consistent interface:
- *   { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
+ *   { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
  *
  * Data flow:
  *   External APIs → Source modules → PostGIS (persistent store)
- *   PostGIS → Redis + in-memory (response cache)
+ *   PostGIS → in-memory JSON (response cache, rebuilt after every fetch cycle)
  *   /api/all → serves from cache with ETag/304
+ *
+ * Startup order matters: the HTTP server listens as soon as the database is
+ * ready and serves whatever PostGIS already holds. The initial fetch of every
+ * source runs after that, so a restart never takes the map offline.
  *
  * To add a new data source:
  * 1. Create sources/yoursource.js (copy usgs.js as template)
@@ -17,6 +21,7 @@
  */
 
 try { require('dotenv').config(); } catch (_) {}
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
@@ -28,7 +33,7 @@ const { connect: connectRedis, client } = require('./redis-client');
 const { getAllActiveEvents } = require('./sources/common');
 
 // ===================== DATA SOURCES =====================
-// Each source exports: { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
+// Each source exports: { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
 
 const SOURCES = [
   require('./sources/noaa'),
@@ -65,12 +70,12 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : null;
 app.use(cors(ALLOWED_ORIGINS ? { origin: ALLOWED_ORIGINS } : undefined));
 app.use(express.json());
-app.use(express.static('../frontend', {
+app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   etag: true,
   lastModified: true,
-  setHeaders: (res, path) => {
+  setHeaders: (res, filePath) => {
     // Short cache for JS/CSS so updates are picked up quickly
-    if (path.endsWith('.js') || path.endsWith('.css')) {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       res.set('Cache-Control', 'public, max-age=60');
     }
   }
@@ -83,8 +88,12 @@ app.use('/api/', rateLimit({
   message: { error: 'Too many requests' }
 }));
 
+// One manual refresh per minute for the whole server, not per client: a
+// refresh hits every upstream API, so a per-IP limit would let N clients
+// trigger N full fetch cycles a minute.
 const fetchLimiter = rateLimit({
   windowMs: 60 * 1000, max: 1,
+  keyGenerator: () => 'global',
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Refresh rate limited. Try again in 60 seconds.' }
 });
@@ -93,6 +102,7 @@ const fetchLimiter = rateLimit({
 
 let cachedResponse = null;
 let cachedEtag = null;
+let initialFetchDone = false;
 
 async function rebuildCache() {
   try {
@@ -101,7 +111,6 @@ async function rebuildCache() {
     cachedResponse = JSON.stringify(data);
     cachedEtag = `"${Date.now()}"`;
 
-    // Also store in Redis for fast recovery after restart
     if (client.isOpen) {
       await client.set('cache:all', cachedResponse);
       await client.set('cache:etag', cachedEtag);
@@ -113,8 +122,28 @@ async function rebuildCache() {
   }
 }
 
+/**
+ * Fetch a set of sources in parallel, log failures, rebuild the cache.
+ * Returns { PREFIX: result | { error } } for the manual-refresh response.
+ */
+async function fetchSources(sources, argsFor = () => []) {
+  const results = await Promise.allSettled(sources.map(s => s.fetch(...argsFor(s))));
+  const summary = {};
+  results.forEach((r, i) => {
+    const src = sources[i];
+    if (r.status === 'fulfilled') {
+      summary[src.PREFIX] = r.value;
+    } else {
+      summary[src.PREFIX] = { error: r.reason?.message };
+      console.error(`${src.SOURCE_NAME} failed:`, r.reason?.message);
+    }
+  });
+  await rebuildCache();
+  return summary;
+}
+
 // ===================== SERVER LOCATION =====================
-// Geolocate server IP once at startup. Future: configurable home base.
+// Geolocate server IP once at startup, unless HOME_LAT/HOME_LON are set.
 
 let serverLocation = null;
 
@@ -127,21 +156,21 @@ async function resolveServerLocation() {
       label: process.env.HOME_LABEL || 'Home Base',
       source: 'config'
     };
-    return;
-  }
-  try {
-    const res = await axios.get('http://ip-api.com/json/?fields=lat,lon,city,regionName', { timeout: 5000 });
-    if (res.data && res.data.lat) {
-      serverLocation = {
-        lat: res.data.lat,
-        lon: res.data.lon,
-        label: [res.data.city, res.data.regionName].filter(Boolean).join(', ') || 'Server',
-        source: 'ip-geolocation'
-      };
-      console.log(`✓ Server location: ${serverLocation.label} (${serverLocation.lat}, ${serverLocation.lon})`);
+  } else {
+    try {
+      const res = await axios.get('http://ip-api.com/json/?fields=lat,lon,city,regionName', { timeout: 5000 });
+      if (res.data && res.data.lat) {
+        serverLocation = {
+          lat: res.data.lat,
+          lon: res.data.lon,
+          label: [res.data.city, res.data.regionName].filter(Boolean).join(', ') || 'Server',
+          source: 'ip-geolocation'
+        };
+        console.log(`✓ Server location: ${serverLocation.label} (${serverLocation.lat}, ${serverLocation.lon})`);
+      }
+    } catch (e) {
+      console.warn('⚠ Could not resolve server location:', e.message);
     }
-  } catch (e) {
-    console.warn('⚠ Could not resolve server location:', e.message);
   }
 
   // Resolve scanner link for home location
@@ -236,27 +265,27 @@ app.get('/api/location', (req, res) => {
   }
 });
 
+// 200 while the database answers (even before the first fetch has finished),
+// 503 when it does not — that is what the Docker healthcheck watches.
 app.get('/api/health', async (req, res) => {
-  try {
-    let pgOk = false;
-    try { await pool.query('SELECT 1'); pgOk = true; } catch (_) {}
+  let pgOk = false;
+  try { await pool.query('SELECT 1'); pgOk = true; } catch (_) {}
 
-    res.json({
-      status: pgOk ? 'healthy' : 'degraded',
-      redis: client.isOpen ? 'connected' : 'disconnected',
-      postgres: pgOk ? 'connected' : 'disconnected',
-      sources: SOURCES.map(s => s.SOURCE_NAME),
-      cacheSize: cachedResponse ? cachedResponse.length : 0,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(503).json({ status: 'unhealthy', error: error.message });
-  }
+  res.status(pgOk ? 200 : 503).json({
+    status: !pgOk ? 'degraded' : initialFetchDone ? 'healthy' : 'starting',
+    redis: client.isOpen ? 'connected' : 'disconnected',
+    postgres: pgOk ? 'connected' : 'disconnected',
+    initialFetch: initialFetchDone ? 'done' : 'pending',
+    sources: SOURCES.map(s => s.SOURCE_NAME),
+    cacheSize: cachedResponse ? cachedResponse.length : 0,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/api/all', async (req, res) => {
   try {
     if (!cachedResponse) await rebuildCache();
+    if (!cachedResponse) return res.status(503).json({ error: 'Data not available yet' });
     if (cachedEtag && req.headers['if-none-match'] === cachedEtag) {
       return res.status(304).end();
     }
@@ -273,12 +302,7 @@ app.get('/api/all', async (req, res) => {
 app.post('/api/fetch', fetchLimiter, async (req, res) => {
   try {
     console.log('Manual fetch triggered');
-    const results = await Promise.allSettled(SOURCES.map(s => s.fetch()));
-    await rebuildCache();
-    const summary = {};
-    results.forEach((r, i) => {
-      summary[SOURCES[i].PREFIX] = r.status === 'fulfilled' ? r.value : { error: r.reason?.message };
-    });
+    const summary = await fetchSources(SOURCES);
     res.json({ success: true, ...summary });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch data' });
@@ -287,26 +311,24 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
 
 // ===================== STARTUP =====================
 
+let server = null;
+
 async function start() {
   try {
-    // Connect to databases
     await connectDb();
     await connectRedis();
     console.log('✓ Redis connected');
 
-    // Resolve server location (non-blocking — don't fail startup if it errors)
-    await resolveServerLocation();
+    // Serve whatever PostGIS already holds, then open the port. Every
+    // restart is a stale map, never a blank one.
+    await rebuildCache();
+    server = app.listen(PORT, () => {
+      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+      console.log(`   Sources: ${SOURCES.map(s => s.SOURCE_NAME).join(', ')}`);
+    });
 
-    // Try to serve cached response from Redis while initial fetch runs
-    if (client.isOpen) {
-      const cached = await client.get('cache:all');
-      const etag = await client.get('cache:etag');
-      if (cached) {
-        cachedResponse = cached;
-        cachedEtag = etag;
-        console.log('✓ Restored cache from Redis');
-      }
-    }
+    // Non-blocking — don't fail startup if it errors
+    await resolveServerLocation();
 
     // Initial fetch — all sources in parallel
     console.log('\n📡 Initial fetch...');
@@ -327,16 +349,8 @@ async function start() {
       }
     }
 
-    const initialResults = await Promise.allSettled(
-      SOURCES.map(src => {
-        if (src.PREFIX === 'gdelt' && gdeltHours) return src.fetch(gdeltHours);
-        return src.fetch();
-      })
-    );
-    initialResults.forEach((r, i) => {
-      if (r.status === 'rejected') console.error(`${SOURCES[i].SOURCE_NAME} failed:`, r.reason?.message);
-    });
-    await rebuildCache();
+    await fetchSources(SOURCES, src => (src.PREFIX === 'gdelt' && gdeltHours) ? [gdeltHours] : []);
+    initialFetchDone = true;
 
     // Schedule fetches — group by cron to avoid duplicate timers
     const scheduleGroups = groupBySchedule(SOURCES);
@@ -344,11 +358,7 @@ async function start() {
       const names = sources.map(s => s.SOURCE_NAME).join('+');
       cron.schedule(schedule, async () => {
         console.log(`\n⏰ Scheduled: ${names}`);
-        const results = await Promise.allSettled(sources.map(s => s.fetch()));
-        results.forEach((r, i) => {
-          if (r.status === 'rejected') console.error(`${sources[i].SOURCE_NAME} failed:`, r.reason?.message);
-        });
-        await rebuildCache();
+        await fetchSources(sources);
       });
       console.log(`✓ Scheduled ${names} [${schedule}]`);
     }
@@ -367,22 +377,29 @@ async function start() {
       }
     });
     console.log('✓ Scheduled hourly expiry cleanup');
-
-    app.listen(PORT, () => {
-      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-      console.log(`   Sources: ${SOURCES.map(s => s.SOURCE_NAME).join(', ')}`);
-    });
   } catch (error) {
     console.error('Failed to start:', error);
     process.exit(1);
   }
 }
 
-process.on('SIGINT', async () => {
-  console.log('\nShutting down...');
-  await client.quit();
-  await pool.end();
+// Docker sends SIGTERM on stop; a terminal sends SIGINT. Same exit path.
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n${signal} received, shutting down...`);
+  setTimeout(() => process.exit(1), 8000).unref();
+  try {
+    if (server) await new Promise(resolve => server.close(resolve));
+    if (client.isOpen) await client.quit();
+    await pool.end();
+  } catch (e) {
+    console.error('Shutdown error:', e.message);
+  }
   process.exit(0);
-});
+}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 start();

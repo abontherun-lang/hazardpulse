@@ -86,7 +86,7 @@ These are currently integrated and running in production. All sources write to a
 - **Update**: Every 10 minutes
 - **Expiry**: 4 hours
 - **Props**: `city`, `dispatchType` (stored in JSONB)
-- **Cities**: Seattle WA, San Francisco CA, Austin TX, Cincinnati OH, Indianapolis IN
+- **Cities**: Seattle WA, San Francisco CA, Austin TX, Indianapolis IN. Cincinnati OH was dropped 2026-09-08: its CAD dataset is a daily batch whose newest row is always the previous day 23:59 local, unusable for a 4-hour dispatch window.
 - **Notes**: Config-driven via `dispatch-feeds.json`. Platform adapters in `adapters/socrata.js` and `adapters/arcgis.js`. To add a city, add an entry to the JSON config. Uses batch `storeEvents()`.
 
 ### Iowa State Mesonet (Satellite Imagery)

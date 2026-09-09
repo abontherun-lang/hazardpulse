@@ -103,7 +103,7 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 | USGS Volcano API | Volcano alert levels (elevated only) | Hourly | Free |
 | GDELT Project | Armed violence, protests, use of force (news-derived) | 15 min | Free |
 | FEMA IPAWS | Evacuations, law enforcement, AMBER/Silver alerts | 15 min | Free |
-| 911 Dispatch | Municipal CAD feeds (Seattle, SF, Austin, Cincinnati, Indianapolis) | 10 min | Free |
+| 911 Dispatch | Municipal CAD feeds (Seattle, SF, Austin, Indianapolis) | 10 min | Free |
 | Iowa State Mesonet | GOES satellite imagery (IR, visible, water vapor) | On demand | Free |
 | RainViewer | Precipitation radar | On demand | Free |
 

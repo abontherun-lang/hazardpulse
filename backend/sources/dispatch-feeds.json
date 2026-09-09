@@ -110,44 +110,6 @@
     "hoursBack": 4
   },
   {
-    "id": "cincinnati_police",
-    "city": "Cincinnati",
-    "state": "OH",
-    "platform": "socrata",
-    "domain": "data.cincinnati-oh.gov",
-    "dataset": "gexm-h6bt",
-    "fields": {
-      "type": "incident_type_id",
-      "lat": "latitude_x",
-      "lon": "longitude_x",
-      "time": "create_time_incident",
-      "address": "address_x",
-      "id": "event_number"
-    },
-    "crisisTypes": [
-      "SHOOTING", "SHOTS FIRED", "STABBING", "CUTTING",
-      "ROBBERY", "AGGRAVATED ROBBERY",
-      "ASSAULT", "AGGRAVATED ASSAULT", "ASSAULT WITH A GUN",
-      "FIRE RUN (FD)", "STRUCTURE FIRE",
-      "PERSON WITH A GUN", "PERSON WITH A KNIFE",
-      "MAJOR ACCIDENT", "ACCIDENT WITH INJURIES",
-      "HAZMAT", "BOMB THREAT", "BARRICADE/HOSTAGE"
-    ],
-    "categoryMap": {
-      "SHOOTING": "Dispatch Violence", "SHOTS FIRED": "Dispatch Violence",
-      "STABBING": "Dispatch Violence", "CUTTING": "Dispatch Violence",
-      "ROBBERY": "Dispatch Violence", "AGGRAVATED ROBBERY": "Dispatch Violence",
-      "ASSAULT": "Dispatch Violence", "AGGRAVATED ASSAULT": "Dispatch Violence",
-      "ASSAULT WITH A GUN": "Dispatch Violence",
-      "PERSON WITH A GUN": "Dispatch Violence", "PERSON WITH A KNIFE": "Dispatch Violence",
-      "BARRICADE/HOSTAGE": "Dispatch Violence",
-      "FIRE RUN (FD)": "Dispatch Fire", "STRUCTURE FIRE": "Dispatch Fire",
-      "MAJOR ACCIDENT": "Dispatch Accident", "ACCIDENT WITH INJURIES": "Dispatch Accident",
-      "HAZMAT": "Dispatch Hazmat", "BOMB THREAT": "Dispatch Hazmat"
-    },
-    "hoursBack": 24
-  },
-  {
     "id": "indianapolis_police",
     "city": "Indianapolis",
     "state": "IN",

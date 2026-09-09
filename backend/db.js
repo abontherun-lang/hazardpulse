@@ -9,6 +9,7 @@ const { Pool } = require('pg');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { runMigrations } = require('./migrations');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://hazardpulse:hazardpulse@db:5432/hazardpulse',
@@ -46,6 +47,7 @@ async function connect() {
     const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
     await client.query(schema);
     console.log('✓ Schema initialized');
+    await runMigrations(client);
 
     // Auto-load TIGER boundary data if not present
     const tigerCheck = await client.query(
