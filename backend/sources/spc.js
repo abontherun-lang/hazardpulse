@@ -1,5 +1,5 @@
 /**
- * SPC Storm Reports — Tornado, Hail, and Wind damage reports
+ * SPC Storm Reports — preliminary tornado reports
  * Source: https://www.spc.noaa.gov/ via NOAA ArcGIS FeatureServer
  * Format: ArcGIS JSON (points)
  * Auth: None
@@ -10,31 +10,54 @@
  *   2 = Wind (24h)     3 = Tornado (past week)
  *   4 = All (past week)
  *
- * We pull tornado reports (past week) — these are post-event NWS damage
- * surveys with EF ratings, path descriptions, and damage narratives.
+ * These are Local Storm Reports: a spotter, chaser or office saw a tornado
+ * (or a landspout, or damage). They are preliminary — F_SCALE is null on
+ * every row this layer has served (checked 2026-09-08). Rated damage
+ * surveys come from the NWS Damage Assessment Toolkit (dat.js).
  */
 
 const axios = require('axios');
 const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { colorOf } = require('../layers');
 
 const SOURCE_NAME = 'SPC';
 const CRON_SCHEDULE = '*/15 * * * *';
 const PREFIX = 'spc';
+const CATEGORY = 'Tornado Report';
 
 const BASE_URL = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/NOAA_storm_reports_v1/FeatureServer';
+const TORNADO_LAYER = 3; // past week
 
-// Layer 3 = tornado reports (past week), Layer 1 = tornado (24h)
-// We use the weekly layer for broader coverage
-const TORNADO_LAYER = 3;
+/**
+ * One ArcGIS report → event, or null if it has no usable position.
+ * The id is time + location: OBJECTID is reassigned when the layer is
+ * republished, which stored the same report several times.
+ */
+function normalizeReport(a, g) {
+  if (!g || typeof g.y !== 'number' || typeof g.x !== 'number') return null;
+  const lat = g.y, lon = g.x;
+  if (!isInUS(lat, lon)) return null;
 
-function severity(efScale) {
-  if (!efScale) return { level: 'Severe', color: '#0D47A1' };
-  const ef = parseInt(efScale.replace(/\D/g, '')) || 0;
-  if (ef >= 4) return { level: 'Extreme', color: '#1A237E' };
-  if (ef >= 3) return { level: 'Extreme', color: '#0D47A1' };
-  if (ef >= 2) return { level: 'Severe', color: '#1565C0' };
-  if (ef >= 1) return { level: 'Severe', color: '#1976D2' };
-  return { level: 'Moderate', color: '#42A5F5' };
+  const when = Number(a.UTC_DATETIME) || Date.now();
+  const location = [a.LOCATION, a.COUNTY, a.STATE].filter(Boolean).join(', ');
+  const rating = a.F_SCALE ? text(a.F_SCALE) : null;
+
+  return {
+    id: `spc-tornado-${when}-${lat.toFixed(2)}-${lon.toFixed(2)}`,
+    event: CATEGORY,
+    category: CATEGORY,
+    severity: 'Severe',
+    headline: `Tornado reported — ${location || 'location unknown'}`,
+    description: text(a.COMMENTS),
+    areaDesc: text(location),
+    color: colorOf(CATEGORY),
+    sourceUrl: 'https://www.spc.noaa.gov/climo/reports/today.html',
+    timestamp: when,
+    lat,
+    lon,
+    preliminary: true,
+    ...(rating && { rating })
+  };
 }
 
 async function fetch() {
@@ -42,13 +65,7 @@ async function fetch() {
   let response;
   try {
     response = await axios.get(`${BASE_URL}/${TORNADO_LAYER}/query`, {
-      params: {
-        where: '1=1',
-        outFields: '*',
-        resultRecordCount: 500,
-        f: 'json',
-        outSR: 4326
-      },
+      params: { where: '1=1', outFields: '*', resultRecordCount: 500, f: 'json', outSR: 4326 },
       timeout: 15000
     });
   } catch (e) {
@@ -59,40 +76,10 @@ async function fetch() {
   const features = response.data.features || [];
   console.log(`   Tornado reports (past week): ${features.length}`);
 
-  const events = [];
-  for (const f of features) {
-    const a = f.attributes;
-    const g = f.geometry;
-    if (!g || !g.y || !g.x) continue;
-
-    const lat = g.y;
-    const lon = g.x;
-    if (!isInUS(lat, lon)) continue;
-
-    const sev = severity(a.F_SCALE);
-    const efLabel = a.F_SCALE ? `EF${a.F_SCALE.replace(/\D/g, '')}` : 'Survey Pending';
-    const location = [a.LOCATION, a.COUNTY, a.STATE].filter(Boolean).join(', ');
-    const id = `spc-tornado-${a.OBJECTID || `${lat.toFixed(4)}-${lon.toFixed(4)}-${a.UTC_DATETIME}`}`;
-
-    events.push({
-      id,
-      event: 'Tornado Report',
-      category: 'Tornado Report',
-      severity: sev.level,
-      headline: text(`${efLabel} Tornado — ${location}`),
-      description: text(a.COMMENTS || ''),
-      areaDesc: text(location),
-      color: sev.color,
-      sourceUrl: 'https://www.spc.noaa.gov/climo/reports/today.html',
-      timestamp: a.UTC_DATETIME || Date.now(),
-      lat,
-      lon,
-      efScale: efLabel
-    });
-  }
+  const events = features.map(f => normalizeReport(f.attributes || {}, f.geometry)).filter(Boolean);
 
   await storeEvents(SOURCE_NAME, events, TTL.TORNADO);
-  console.log(`   ✓ Stored ${events.length} tornado reports`);
+  console.log(`   ✓ Stored ${events.length} preliminary tornado reports`);
   await setLastUpdate(SOURCE_NAME, events.length);
   return { total: features.length, stored: events.length };
 }
@@ -101,4 +88,4 @@ async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, normalizeReport };

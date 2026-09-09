@@ -51,6 +51,25 @@ These are currently integrated and running in production. All sources write to a
 - **Props**: `acres`, `contained`, `cause` (stored in JSONB)
 - **Notes**: Filtered to `IncidentTypeCategory='WF'` (prescribed burns excluded), not declared out, and either uncontained or discovered within 21 days. Rendered as the **Wildfire Incident** type (sized by acreage) and exported via `getActiveFirePoints()` to corroborate NASA FIRMS. Uses batch `storeEvents()`.
 
+### NWS SPC Storm Reports
+- **Data**: Preliminary tornado reports — Local Storm Reports from spotters, chasers and offices
+- **Endpoint**: `https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/NOAA_storm_reports_v1/FeatureServer/3/query` (tornado, past week)
+- **Format**: ArcGIS JSON (points)
+- **Auth**: None
+- **Update**: Every 15 minutes
+- **Expiry**: 7 days
+- **Notes**: `F_SCALE` is null on every row this layer serves (checked 2026-09-08) — these are unrated sightings, rendered as the **Tornado Report** type with "not surveyed yet". Ids are time + location because `OBJECTID` is reassigned on every republish.
+
+### NWS Damage Assessment Toolkit (DAT)
+- **Data**: Surveyed tornado tracks with EF rating, path length/width, max wind, injuries, fatalities, surveying office
+- **Endpoint**: `https://services.dat.noaa.gov/arcgis/rest/services/nws_damageassessmenttoolkit/DamageViewer/MapServer/1/query` (Damage Lines, `f=geojson`)
+- **Format**: GeoJSON LineString per track
+- **Auth**: None
+- **Update**: Hourly
+- **Expiry**: 7 days
+- **Props**: `rating`, `efnum`, `stormDate`, `lengthMi`, `widthYd`, `injuries`, `fatalities`, `maxWindMph`, `wfo`
+- **Notes**: The service holds every survey since 2010 and offices re-edit old ones, so the query asks for tracks edited in the last 14 days and `dat.js` keeps only those whose storm date is also recent. `event_time` is the edit time so a newly rated tornado shows inside the display window. Rendered as the **Tornado Damage Survey** type: a line whose weight grows with the EF number.
+
 ### USGS Volcano Hazards Program
 - **Data**: US volcanoes at elevated alert (above NORMAL/GREEN) with alert level + aviation color code
 - **Endpoint**: `https://volcanoes.usgs.gov/vsc/api/volcanoApi/geojson`

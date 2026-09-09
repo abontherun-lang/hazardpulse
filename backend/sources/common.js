@@ -54,6 +54,7 @@ const TTL = {
   FEMA: 21600,        // 6 hours
   DISPATCH: 14400,    // 4 hours
   TORNADO: 604800,    // 7 days (matches SPC weekly feed)
+  SURVEY: 604800,     // 7 days (DAT surveys; the display window trims to recent edits)
   NIFC: 21600,        // 6 hours (incidents poll hourly; tolerate fetch gaps)
   VOLCANO: 7200       // 2 hours (alert levels change slowly)
 };

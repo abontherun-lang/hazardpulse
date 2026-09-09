@@ -213,7 +213,7 @@ function passesZoomFilter(feature, zoom) {
     if (zoom <= 6) return ac >= 100;
     return true;
   }
-  if (source === 'USGS Volcano') return true; // sparse + important: always shown
+  if (source === 'USGS Volcano' || source === 'NWS DAT') return true; // sparse + important: always shown
   if (source === 'GDELT') {
     if (zoom <= 4) return severity === 'Extreme' || severity === 'Severe';
     return true;
@@ -347,6 +347,7 @@ function buildLayers() {
       else if (source === 'USGS') buildQuakeMarker(feature);
       else if (source === 'FEMA IPAWS') buildFemaMarker(feature);
       else if (source === 'SPC') buildTornadoReportMarker(feature);
+      else if (source === 'NWS DAT') buildSurveyTrack(feature);
       else buildWeatherMarker(feature);
     } catch (e) {
       console.warn('Skipping bad feature:', e.message, feature?.id);
@@ -550,16 +551,27 @@ function buildTornadoReportMarker(feature) {
   if (!group || !feature.geometry) return;
 
   const c = feature.geometry.coordinates;
-  const color = props.color || '#0D47A1';
-  const opacity = severityOpacity(props.severity);
-  const size = props.severity === 'Extreme' ? 11 : 9;
+  const color = props.color || TYPE_COLORS['Tornado Report'] || '#5C6BC0';
 
   const marker = L.circleMarker([c[1], c[0]], {
-    radius: size, fillColor: color, fillOpacity: opacity,
-    color: '#fff', weight: 2, opacity
+    radius: 7, fillColor: color, fillOpacity: 0.75, color: '#fff', weight: 1.5
   });
   marker.bindPopup(createTornadoReportPopup(props), { maxWidth: 400, maxHeight: 500 });
   marker.addTo(group);
+}
+
+// Surveyed tornado track: a line, weight by EF rating.
+function buildSurveyTrack(feature) {
+  const props = feature.properties;
+  const group = layerGroups['Tornado Damage Survey'];
+  if (!group || !feature.geometry || feature.geometry.type !== 'LineString') return;
+
+  const color = safeColor(props.color, TYPE_COLORS['Tornado Damage Survey'] || '#1E88E5');
+  const ef = parseInt(props.efnum);
+  const weight = 3 + (Number.isFinite(ef) ? ef : 0);
+  const layer = L.geoJSON(feature, { style: { color, weight, opacity: 0.9, lineCap: 'round' } });
+  layer.bindPopup(createSurveyPopup(props), { maxWidth: 400, maxHeight: 500 });
+  layer.addTo(group);
 }
 
 // ===================== POPUPS =====================
@@ -679,12 +691,33 @@ function createDispatchPopup(props) {
 }
 
 function createTornadoReportPopup(props) {
-  const color = safeColor(props.color, '#0D47A1');
+  const color = safeColor(props.color, '#5C6BC0');
   return `<div>
-    <div class="alert-badge" style="background-color: ${color};">Tornado Report</div>
-    <h3>${esc(props.efScale || 'Tornado')} — ${esc(props.areaDesc || 'Unknown')}</h3>
-    ${props.efScale ? `<p><strong>Rating:</strong> ${esc(props.efScale)}</p>` : ''}
-    ${props.timestamp ? `<p><strong>Time:</strong> ${new Date(parseInt(props.timestamp)).toLocaleString()}</p>` : ''}
+    <div class="alert-badge" style="background-color: ${color};">Preliminary Tornado Report (SPC)</div>
+    <h3>${esc(props.headline || 'Tornado reported')}</h3>
+    <p><strong>Rating:</strong> ${esc(props.rating || 'not surveyed yet')}</p>
+    ${props.timestamp ? `<p><strong>Reported:</strong> ${new Date(parseInt(props.timestamp)).toLocaleString()}</p>` : ''}
+    ${props.description ? `<p style="font-size:0.85rem;margin-top:0.5rem;">${esc(props.description.substring(0, 400))}</p>` : ''}
+    <p class="legend-hint">Local storm report — a spotter or office saw it. Rated surveys appear on the Damage Surveys layer.</p>
+    ${popupFooter(props)}
+  </div>`;
+}
+
+function createSurveyPopup(props) {
+  const color = safeColor(props.color, '#1E88E5');
+  const n = v => (v === null || v === undefined || v === '') ? null : v;
+  const rows = [
+    ['Rating', props.rating],
+    ['Storm date', n(props.stormDate) ? new Date(parseInt(props.stormDate)).toLocaleString() : null],
+    ['Path', n(props.lengthMi) !== null ? `${props.lengthMi} mi long${n(props.widthYd) !== null ? `, ${props.widthYd} yd wide` : ''}` : null],
+    ['Max wind', n(props.maxWindMph) ? `${props.maxWindMph} mph` : null],
+    ['Injuries / fatalities', (n(props.injuries) !== null || n(props.fatalities) !== null) ? `${props.injuries ?? 0} / ${props.fatalities ?? 0}` : null],
+    ['Surveyed by', props.areaDesc]
+  ].filter(([, v]) => v !== null && v !== undefined && v !== '');
+  return `<div>
+    <div class="alert-badge" style="background-color: ${color};">Tornado Damage Survey (NWS)</div>
+    <h3>${esc(props.headline || 'Tornado')}</h3>
+    ${rows.map(([k, v]) => `<p><strong>${esc(k)}:</strong> ${esc(v)}</p>`).join('')}
     ${props.description ? `<p style="font-size:0.85rem;margin-top:0.5rem;">${esc(props.description.substring(0, 400))}</p>` : ''}
     ${popupFooter(props)}
   </div>`;
@@ -714,6 +747,9 @@ function featureLatLng(feature) {
   let result = null;
   if (geom.type === 'Point') {
     result = [geom.coordinates[1], geom.coordinates[0]];
+  } else if (geom.type === 'LineString' && geom.coordinates.length) {
+    const mid = geom.coordinates[Math.floor(geom.coordinates.length / 2)];
+    result = [mid[1], mid[0]];
   } else if ((geom.type === 'Polygon' || geom.type === 'MultiPolygon') && geom.coordinates[0]) {
     const ring = geom.type === 'Polygon' ? geom.coordinates[0] : geom.coordinates[0][0];
     if (ring && ring.length) {

@@ -55,8 +55,19 @@ async function unescapeStoredText(client) {
   console.log(`   unescaped ${textResult.rowCount} rows, ${propsResult.rowCount} props`);
 }
 
+/**
+ * SPC report ids were the ArcGIS OBJECTID, which is reassigned whenever the
+ * weekly layer is republished, so one report was stored several times.
+ * Drop the old rows; the next fetch stores them under time+location ids.
+ */
+async function dropSpcObjectIdRows(client) {
+  const r = await client.query(`DELETE FROM events WHERE source = 'SPC' AND id ~ '^spc-tornado-\\d+$'`);
+  console.log(`   removed ${r.rowCount} SPC rows keyed by OBJECTID`);
+}
+
 const MIGRATIONS = [
   { key: '2026-09-08-unescape-stored-text', run: unescapeStoredText },
+  { key: '2026-09-08-spc-stable-ids', run: dropSpcObjectIdRows },
 ];
 
 async function runMigrations(client) {
