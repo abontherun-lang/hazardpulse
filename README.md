@@ -9,14 +9,14 @@ Real-time crisis map for the United States. One command to run. No API keys. No 
 
 ![HazardPulse Demo](docs/assets/demo.gif)
 
-**9 polled data sources** — NOAA weather alerts, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
+**10 polled data sources** — NOAA weather alerts, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, SPC preliminary tornado reports, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
 
 **What you get:**
 - Live interactive map tracking ~2,000 events at a time, refreshed on per-source schedules
 - 9 layer groups you can toggle independently — weather, hurricanes/tropical, earthquakes/tsunami, wildfires, volcanoes, emergency alerts, 911 dispatch, civil/conflict, satellite & radar
 - 6 one-click Quick Views: All, Critical (life-safety only), Weather, Seismic, Fire, Conflict
 - Satellite fire detections cross-checked against official NIFC incidents — high-intensity or corroborated fires only, not industrial/agricultural thermal noise
-- Post-event tornado damage surveys with EF ratings from NWS storm reports
+- Surveyed tornado tracks with EF ratings, path length and casualties from the NWS Damage Assessment Toolkit, beside SPC's preliminary reports
 - Time slider to filter by recency, zoom-based filtering, severity-weighted display
 - Every event reverse-geocoded to state, county, and city via Census boundary data
 - One-click Broadcastify links to listen to local emergency scanners near any event
@@ -99,7 +99,8 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 | USGS Earthquake API | Earthquake detections with magnitude and depth | 5 min | Free |
 | NASA FIRMS | Satellite wildfire detections (VIIRS sensor) | 3 hours | Free |
 | NIFC | Named wildfire incidents with acreage and containment | Hourly | Free |
-| NWS SPC | Post-event tornado damage surveys with EF ratings | 15 min | Free |
+| NWS SPC | Preliminary tornado reports (local storm reports, unrated) | 15 min | Free |
+| NWS DAT | Surveyed tornado tracks with EF rating, path, injuries and fatalities | Hourly | Free |
 | USGS Volcano API | Volcano alert levels (elevated only) | Hourly | Free |
 | GDELT Project | Armed violence, protests, use of force (news-derived) | 15 min | Free |
 | FEMA IPAWS | Local-authority alerts: evacuations, law enforcement, AMBER/Silver (NWS-sent messages skipped, the NOAA feed has them) | 15 min | Free |
@@ -232,7 +233,8 @@ hazardpulse/
 │       ├── usgs.js            USGS earthquakes
 │       ├── firms.js           NASA FIRMS satellite fire detections
 │       ├── nifc.js            NIFC named wildfire incidents
-│       ├── spc.js             NWS SPC tornado damage surveys
+│       ├── spc.js             SPC preliminary tornado reports
+│       ├── dat.js             NWS DAT surveyed tornado tracks (EF ratings)
 │       ├── volcano.js         USGS volcano alert levels
 │       ├── gdelt.js           GDELT conflict/unrest
 │       ├── fema.js            FEMA IPAWS emergency alerts

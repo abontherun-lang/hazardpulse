@@ -46,6 +46,7 @@ const SOURCES = [
   require('./sources/fema'),
   require('./sources/dispatch'),
   require('./sources/spc'),
+  require('./sources/dat'),
 ];
 
 // Group sources by cron schedule for efficient scheduling

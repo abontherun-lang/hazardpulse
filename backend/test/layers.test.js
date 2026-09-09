@@ -7,7 +7,7 @@ const { registry, TYPES, colorOf, has, legendTypes } = require('../layers');
 // Categories the source modules write. Every one must be registered or it
 // renders nowhere and toggles nothing. Keep in sync with the sources.
 const SOURCE_CATEGORIES = [
-  'Earthquake', 'Wildfire', 'Wildfire Incident', 'Volcano', 'Tornado Report',
+  'Earthquake', 'Wildfire', 'Wildfire Incident', 'Volcano', 'Tornado Report', 'Tornado Damage Survey',
   'Protest', 'Armed Violence', 'Use of Force',
   'Official Alerts', 'Missing Persons',
   'Dispatch Fire', 'Dispatch Violence', 'Dispatch Accident', 'Dispatch Hazmat'
