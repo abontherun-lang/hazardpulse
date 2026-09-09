@@ -15,7 +15,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { sanitize, sanitizeUrl, isInUS, TTL, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, isInUS, TTL, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
 
 // Load UGC centroids for SAME/FIPS code geocoding fallback
 let ugcCentroids = {};
@@ -110,6 +110,17 @@ function classify(event, headline) {
   return { category: 'Official Alerts', color: '#D50000' };
 }
 
+// CAP text is XML-escaped ("Sheriff&apos;s Office", "A&amp;W"); decode it here so
+// the stored text is plain and the frontend escapes it exactly once.
+function decodeXml(s) {
+  return s
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&amp;/g, '&');
+}
+
 function parsePolygon(str) {
   const coords = str.trim().split(/\s+/).map(pair => {
     const [lat, lon] = pair.split(',').map(Number);
@@ -147,7 +158,7 @@ async function fetch() {
   let stored = 0, skipped = 0;
   for (const alert of alerts) {
     const xml = alert.originalMessage || '';
-    const extract = (tag) => { const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`)); return m ? m[1] : ''; };
+    const extract = (tag) => { const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`)); return m ? decodeXml(m[1]) : ''; };
 
     const event = extract('event');
     const headline = extract('headline');
@@ -187,19 +198,19 @@ async function fetch() {
     await storeEvent(SOURCE_NAME, id, {
       event: cls.category,
       category: cls.category,
-      severity: sanitize(extract('severity')) || 'Severe',
-      headline: sanitize(headline || event),
-      description: sanitize((extract('description') || '').slice(0, 500)),
-      areaDesc: sanitize(extract('areaDesc') || extract('senderName')),
+      severity: text(extract('severity')) || 'Severe',
+      headline: text(headline || event),
+      description: text((extract('description') || '').slice(0, 500)),
+      areaDesc: text(extract('areaDesc') || extract('senderName')),
       color: cls.color,
       sourceUrl: sanitizeUrl(extract('web')),
       timestamp: new Date(sent).getTime() || Date.now(),
       geometry,
       // Source-specific extras → props JSONB
-      urgency: sanitize(extract('urgency')),
-      femaEvent: sanitize(event),
-      instruction: sanitize((extract('instruction') || '').slice(0, 500)),
-      senderName: sanitize(extract('senderName'))
+      urgency: text(extract('urgency')),
+      femaEvent: text(event),
+      instruction: text((extract('instruction') || '').slice(0, 500)),
+      senderName: text(extract('senderName'))
     }, TTL.FEMA);
     stored++;
   }
@@ -213,4 +224,4 @@ async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, classify, parsePolygon, parseCircle, decodeXml };

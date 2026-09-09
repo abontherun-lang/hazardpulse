@@ -7,7 +7,7 @@
  */
 
 const axios = require('axios');
-const { sanitize, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'USGS';
 const CRON_SCHEDULE = '*/5 * * * *'; // every 5 minutes
@@ -57,9 +57,9 @@ async function fetch() {
       event: 'Earthquake',
       category: 'Earthquake',
       severity: sev.level,
-      headline: sanitize(`M${mag.toFixed(1)} — ${props.place || 'Unknown location'}`),
-      description: sanitize(`Depth: ${(depth || 0).toFixed(1)} km | Time: ${new Date(props.time).toISOString()}`),
-      areaDesc: sanitize(props.place || ''),
+      headline: text(`M${mag.toFixed(1)} — ${props.place || 'Unknown location'}`),
+      description: text(`Depth: ${(depth || 0).toFixed(1)} km | Time: ${new Date(props.time).toISOString()}`),
+      areaDesc: text(props.place || ''),
       color: sev.color,
       lat,
       lon,

@@ -54,6 +54,13 @@ CREATE INDEX IF NOT EXISTS idx_events_active ON events (expires_at)
 -- Aggressive autovacuum for high-churn table
 ALTER TABLE events SET (autovacuum_vacuum_scale_factor = 0.05);
 
+-- One-shot migrations that have run (see migrations.js)
+CREATE TABLE IF NOT EXISTS app_meta (
+    key         TEXT PRIMARY KEY,
+    value       TEXT,
+    applied_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS source_meta (
     source      TEXT PRIMARY KEY,
     last_update TIMESTAMPTZ,

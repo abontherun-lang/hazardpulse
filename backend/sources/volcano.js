@@ -13,7 +13,7 @@
  */
 
 const axios = require('axios');
-const { sanitize, sanitizeUrl, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'USGS Volcano';
 const CRON_SCHEDULE = '0 * * * *'; // hourly
@@ -62,17 +62,17 @@ async function fetch() {
       event: 'Volcano',
       category: 'Volcano',
       severity: SEV[code] || 'Moderate',
-      headline: sanitize(`${p.volcanoName} — ${p.alertLevel} / ${p.colorCode}`),
-      description: sanitize(p.noticeSynopsis || `Aviation color code ${p.colorCode}, alert level ${p.alertLevel}.`),
-      areaDesc: sanitize(p.region || ''),
+      headline: text(`${p.volcanoName} — ${p.alertLevel} / ${p.colorCode}`),
+      description: text(p.noticeSynopsis || `Aviation color code ${p.colorCode}, alert level ${p.alertLevel}.`),
+      areaDesc: text(p.region || ''),
       color: COLOR[code] || '#F9A825',
       lat,
       lon,
       sourceUrl: sanitizeUrl(p.noticeUrl || p.volcanoUrl),
       timestamp: Date.now(),
-      alertLevel: sanitize(p.alertLevel || ''),
-      colorCode: sanitize(p.colorCode || ''),
-      observatory: sanitize(p.obs || '')
+      alertLevel: text(p.alertLevel || ''),
+      colorCode: text(p.colorCode || ''),
+      observatory: text(p.obs || '')
     });
   }
 

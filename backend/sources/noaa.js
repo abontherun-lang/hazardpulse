@@ -14,7 +14,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('../db');
-const { sanitize, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { text, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
 
 // Load UGC centroids for fallback geocoding when TIGER lookup fails
 let ugcCentroids = {};
@@ -194,12 +194,12 @@ async function fetch() {
       const ttl = Math.max(60, Math.floor((expiresAt - Date.now()) / 1000));
 
       await storeEvent(SOURCE_NAME, id, {
-        event: sanitize(props.event),
-        category: sanitize(props.event),
-        severity: sanitize(props.severity) || 'Unknown',
-        headline: sanitize(props.headline),
-        description: sanitize(props.description),
-        areaDesc: sanitize(props.areaDesc),
+        event: text(props.event),
+        category: text(props.event),
+        severity: text(props.severity) || 'Unknown',
+        headline: text(props.headline),
+        description: text(props.description),
+        areaDesc: text(props.areaDesc),
         color: ALERT_COLORS[props.event] || '#808080',
         sourceUrl: props['@id'] || '',
         timestamp: new Date(alertTime).getTime(),
