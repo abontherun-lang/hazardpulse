@@ -18,9 +18,15 @@
           ]
         },
         {
-          "label": "Tornado Reports (NWS)",
+          "label": "Tornado Reports (SPC, preliminary)",
           "types": [
             "Tornado Report"
+          ]
+        },
+        {
+          "label": "Tornado Damage Surveys (NWS)",
+          "types": [
+            "Tornado Damage Survey"
           ]
         },
         {
@@ -358,8 +364,8 @@
       "style": "dashed"
     },
     "Tornado Report": {
-      "color": "#0D47A1",
-      "style": "fill",
+      "color": "#5C6BC0",
+      "style": "dot",
       "cluster": true
     },
     "Severe Thunderstorm Warning": {
@@ -664,6 +670,10 @@
     "Blue Alert": {
       "color": "#C62828",
       "style": "fill"
+    },
+    "Tornado Damage Survey": {
+      "color": "#1E88E5",
+      "style": "fill"
     }
   },
   "presets": {
@@ -699,6 +709,7 @@
       "types": [
         "Tornado Warning",
         "Tornado Report",
+        "Tornado Damage Survey",
         "Hurricane Warning",
         "Storm Surge Warning",
         "Tsunami Warning",
