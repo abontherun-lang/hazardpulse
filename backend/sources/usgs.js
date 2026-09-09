@@ -6,7 +6,7 @@
  * Rate: Feed cached 60s server-side. We poll every 5 min.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'USGS';
@@ -26,10 +26,7 @@ async function fetch() {
   console.log('\n🌍 Fetching earthquakes from USGS...');
   let response;
   try {
-    response = await axios.get(URL, {
-      timeout: 15000,
-      headers: { 'Accept-Encoding': 'gzip' }
-    });
+    response = await http.get(URL);
   } catch (e) {
     console.error(`   USGS API error: ${e.message}`);
     throw e;

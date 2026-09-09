@@ -207,8 +207,62 @@ async function storeEvent(source, id, data, ttl) {
 }
 
 /**
- * Batch store events in a single transaction.
- * Much faster than individual storeEvent calls for high-volume sources.
+ * Split a batch into parallel column arrays for one unnest() INSERT.
+ * Pure: no database. Rows with unusable geometry are skipped; a duplicate
+ * id within the batch keeps the last row (ON CONFLICT cannot touch the same
+ * row twice in one statement).
+ *
+ * @returns {{ columns: object, count: number, skipped: number }}
+ */
+function buildBatchRows(source, events, ttl, now = Date.now()) {
+  const byId = new Map();
+  let skipped = 0;
+  for (const evt of events) {
+    const geojson = buildGeoJSON(evt);
+    if (!geojson || evt.id === undefined || evt.id === null) { skipped++; continue; }
+    byId.set(String(evt.id), { evt, geojson });
+  }
+
+  const expiresAt = new Date(now + ttl * 1000).toISOString();
+  const columns = {
+    id: [], source: [], event: [], category: [], severity: [], headline: [], description: [],
+    area_desc: [], color: [], source_url: [], event_time: [], expires_at: [], geojson: [], props: []
+  };
+  for (const [id, { evt, geojson }] of byId) {
+    const props = {};
+    for (const [key, val] of Object.entries(evt)) {
+      if (key === 'id') continue;
+      if (!KNOWN_FIELDS.has(key) && val !== undefined && val !== null && val !== '') props[key] = val;
+    }
+    let eventTime = evt.timestamp
+      ? new Date(typeof evt.timestamp === 'string' ? parseInt(evt.timestamp) : evt.timestamp)
+      : new Date(now);
+    if (isNaN(eventTime.getTime())) eventTime = new Date(now);
+
+    columns.id.push(id);
+    columns.source.push(source);
+    columns.event.push(evt.event || '');
+    columns.category.push(evt.category || '');
+    columns.severity.push(evt.severity || 'Unknown');
+    columns.headline.push(evt.headline || '');
+    columns.description.push(evt.description || '');
+    columns.area_desc.push(evt.areaDesc || '');
+    columns.color.push(evt.color || '#808080');
+    columns.source_url.push(evt.sourceUrl || '');
+    columns.event_time.push(eventTime.toISOString());
+    columns.expires_at.push(expiresAt);
+    columns.geojson.push(geojson);
+    columns.props.push(JSON.stringify(props));
+  }
+  return { columns, count: byId.size, skipped };
+}
+
+const BATCH_CHUNK = 1000;
+
+/**
+ * Batch store events: one INSERT per 1000 rows via unnest(), then one
+ * geocoding UPDATE, in a single transaction. Before 2026-09-08 this ran one
+ * INSERT per row (a USGS cycle is ~250 round trips).
  *
  * @param {string} source - Source name
  * @param {Array<{id, ...data}>} events - Array of event data objects (must include 'id')
@@ -216,39 +270,32 @@ async function storeEvent(source, id, data, ttl) {
  */
 async function storeEvents(source, events, ttl) {
   if (events.length === 0) return;
+  const { columns, count, skipped } = buildBatchRows(source, events, ttl);
+  if (count === 0) {
+    console.warn(`   [${source}] Skipped ${skipped}/${events.length} events: bad geometry`);
+    return;
+  }
 
   const dbClient = await pool.connect();
   try {
     await dbClient.query('BEGIN');
 
-    // Phase 1: Insert/update rows WITHOUT geocoding (fast, no spatial queries per row)
-    let skipped = 0;
-    for (const evt of events) {
-      const geojson = buildGeoJSON(evt);
-      if (!geojson) { skipped++; continue; }
-
-      const props = {};
-      for (const [key, val] of Object.entries(evt)) {
-        if (key === 'id') continue;
-        if (!KNOWN_FIELDS.has(key) && val !== undefined && val !== null && val !== '') {
-          props[key] = val;
-        }
-      }
-
-      let eventTime = evt.timestamp
-        ? new Date(typeof evt.timestamp === 'string' ? parseInt(evt.timestamp) : evt.timestamp)
-        : new Date();
-      if (isNaN(eventTime.getTime())) eventTime = new Date();
-      const expiresAt = new Date(Date.now() + ttl * 1000);
-
+    // Phase 1: upsert rows WITHOUT geocoding (fast, no spatial queries per row)
+    for (let start = 0; start < count; start += BATCH_CHUNK) {
+      const slice = key => columns[key].slice(start, start + BATCH_CHUNK);
       await dbClient.query(`
         INSERT INTO events (
           id, source, event, category, severity, headline, description,
           area_desc, color, source_url, event_time, expires_at, geom, props
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-          ST_GeomFromGeoJSON($13), $14
         )
+        SELECT id, source, event, category, severity, headline, description,
+               area_desc, color, source_url, event_time, expires_at,
+               ST_GeomFromGeoJSON(geojson), props::jsonb
+        FROM unnest(
+          $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[],
+          $8::text[], $9::text[], $10::text[], $11::timestamptz[], $12::timestamptz[], $13::text[], $14::text[]
+        ) AS t(id, source, event, category, severity, headline, description,
+               area_desc, color, source_url, event_time, expires_at, geojson, props)
         ON CONFLICT (id) DO UPDATE SET
           event = EXCLUDED.event, category = EXCLUDED.category,
           severity = EXCLUDED.severity, headline = EXCLUDED.headline,
@@ -259,12 +306,9 @@ async function storeEvents(source, events, ttl) {
                       THEN events.geom ELSE EXCLUDED.geom END,
           props = EXCLUDED.props
       `, [
-        evt.id, source,
-        evt.event || '', evt.category || '', evt.severity || 'Unknown',
-        evt.headline || '', evt.description || '', evt.areaDesc || '',
-        evt.color || '#808080', evt.sourceUrl || '',
-        eventTime, expiresAt,
-        geojson, JSON.stringify(props)
+        slice('id'), slice('source'), slice('event'), slice('category'), slice('severity'),
+        slice('headline'), slice('description'), slice('area_desc'), slice('color'), slice('source_url'),
+        slice('event_time'), slice('expires_at'), slice('geojson'), slice('props')
       ]);
     }
 
@@ -488,6 +532,22 @@ async function deleteWhereNoUSState(source) {
   return res.rowCount || 0;
 }
 
+/**
+ * Active point events for a source as {lat, lon, acres} — what FIRMS
+ * corroborates against (NIFC incidents, elevated volcanoes). Reads the
+ * rows the other source stored instead of refetching its API.
+ */
+async function getActivePoints(source) {
+  const res = await pool.query(`
+    SELECT ST_Y(geom) AS lat, ST_X(geom) AS lon,
+           COALESCE((props->>'acres')::float, 0) AS acres
+    FROM events
+    WHERE source = $1 AND (expires_at IS NULL OR expires_at > NOW())
+      AND ST_GeometryType(geom) = 'ST_Point'
+  `, [source]);
+  return res.rows.map(r => ({ lat: Number(r.lat), lon: Number(r.lon), acres: Number(r.acres) }));
+}
+
 /** Count currently-active (unexpired) events for a source. */
 async function countActiveEvents(source) {
   const res = await pool.query(
@@ -499,7 +559,7 @@ async function countActiveEvents(source) {
 
 module.exports = {
   text, sanitizeUrl, isInUS, haversineKm, buildGeoJSON, cronIntervalMinutes,
-  TTL, storeEvent, storeEvents,
-  getActiveEvents, getAllActiveEvents,
+  TTL, storeEvent, storeEvents, buildBatchRows,
+  getActiveEvents, getAllActiveEvents, getActivePoints,
   setLastUpdate, deleteWhereNoUSState, countActiveEvents
 };

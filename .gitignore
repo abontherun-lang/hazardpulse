@@ -1,5 +1,4 @@
 .claude/
-dump.rdb
 backend/node_modules/
 backend/.env
 *.backup

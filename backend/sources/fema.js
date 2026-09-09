@@ -15,7 +15,7 @@
  * IPAWS adds.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { text, sanitizeUrl, isInUS, TTL, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 const { sameCodesToPoint } = require('./geo');
@@ -87,7 +87,7 @@ async function fetch() {
   console.log('\n🏛️  Fetching FEMA IPAWS alerts...');
   let response;
   try {
-    response = await axios.get(URL, {
+    response = await http.get(URL, {
       params: { '$top': 200, '$orderby': 'sent desc' },
       timeout: 20000
     });
