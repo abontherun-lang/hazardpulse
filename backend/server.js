@@ -21,7 +21,7 @@
  * 3. That's it — cron, caching, and API are automatic
  */
 
-try { require('dotenv').config(); } catch (_) {}
+try { require('dotenv').config({ quiet: true }); } catch (_) {}
 const path = require('path');
 const { createHash } = require('crypto');
 const express = require('express');
@@ -80,8 +80,11 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   etag: true,
   lastModified: true,
   setHeaders: (res, filePath) => {
-    // Short cache for JS/CSS so updates are picked up quickly
-    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+    if (filePath.includes(`${path.sep}vendor${path.sep}`)) {
+      // Vendored libraries change only with a version bump
+      res.set('Cache-Control', 'public, max-age=86400');
+    } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      // Short cache for our own JS/CSS so updates are picked up quickly
       res.set('Cache-Control', 'public, max-age=60');
     }
   }

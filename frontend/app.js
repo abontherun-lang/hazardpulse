@@ -1047,7 +1047,6 @@ async function loadRegistry() {
 setInterval(loadAll, 5 * 60 * 1000);
 
 loadRegistry()
-  .then(loadRadarLayer)
   .then(() => {
     syncLayerVisibility();
     syncSatelliteVisibility();
@@ -1056,3 +1055,7 @@ loadRegistry()
     loadWeather();
   })
   .catch(e => console.error('Boot failed:', e));
+
+// The radar tile URL comes from RainViewer; fetch it off the boot path so a
+// slow or blocked third party never delays the map's own data.
+loadRadarLayer().then(syncSatelliteVisibility);
