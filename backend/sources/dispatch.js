@@ -9,6 +9,7 @@
  */
 
 const { text, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { colorOf } = require('../layers');
 
 // Platform adapters — add new ones here
 const adapters = {
@@ -29,14 +30,6 @@ const CATEGORY_SEVERITY = {
   'Dispatch Hazmat': 'Severe',
   'Dispatch Accident': 'Moderate',
   'Dispatch Other': 'Moderate',
-};
-
-const CATEGORY_COLORS = {
-  'Dispatch Violence': '#D500F9',
-  'Dispatch Fire': '#FF6D00',
-  'Dispatch Hazmat': '#00E676',
-  'Dispatch Accident': '#FFAB00',
-  'Dispatch Other': '#546E7A',
 };
 
 // Consecutive zero-row cycles per feed. A city feed that silently changes
@@ -70,7 +63,7 @@ async function fetch() {
           headline: text(`${inc.type} — ${inc.city}`),
           description: '',
           areaDesc: text(inc.address || inc.city),
-          color: CATEGORY_COLORS[category] || '#546E7A',
+          color: colorOf(category, '#546E7A'),
           sourceUrl: feed.sourceUrl || (feed.domain ? `https://${feed.domain}/d/${feed.dataset}` : ''),
           timestamp: inc.time,
           lat: inc.lat,

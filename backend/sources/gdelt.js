@@ -16,17 +16,19 @@ const {
   text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
   setLastUpdate, deleteWhereNoUSState
 } = require('./common');
+const { colorOf } = require('../layers');
 
 const SOURCE_NAME = 'GDELT';
 const CRON_SCHEDULE = '*/15 * * * *'; // every 15 minutes
 const PREFIX = 'gdelt';
 
-// CAMEO root codes we accept
+// CAMEO root codes we accept, with the map category (a layers.json type)
+// used when the event code is not in ARMED_CODES / FORCE_CODES.
 const ROOT_CODES = {
-  '14': { label: 'Protest', color: '#F9A825' },
-  '18': { label: 'Use of Force', color: '#C62828' },
-  '19': { label: 'Armed Violence', color: '#B71C1C' },
-  '20': { label: 'Use of Force', color: '#880E4F' }
+  '14': { label: 'Protest' },
+  '18': { label: 'Use of Force' },
+  '19': { label: 'Armed Violence' },
+  '20': { label: 'Use of Force' }
 };
 
 const EVENT_LABELS = {
@@ -160,10 +162,11 @@ async function fetch(hoursBack = 0.25) {
     const info = ROOT_CODES[event.rootCode];
     const label = EVENT_LABELS[event.eventCode] || info.label;
 
-    let category, color;
-    if (ARMED_CODES.has(event.eventCode)) { category = 'Armed Violence'; color = '#B71C1C'; }
-    else if (FORCE_CODES.has(event.eventCode)) { category = 'Use of Force'; color = '#C62828'; }
-    else { category = info.label; color = info.color; }
+    let category;
+    if (ARMED_CODES.has(event.eventCode)) category = 'Armed Violence';
+    else if (FORCE_CODES.has(event.eventCode)) category = 'Use of Force';
+    else category = info.label;
+    const color = colorOf(category);
 
     normalized.push({
       id: event.id,
