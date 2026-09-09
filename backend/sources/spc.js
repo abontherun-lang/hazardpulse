@@ -16,7 +16,7 @@
  * surveys come from the NWS Damage Assessment Toolkit (dat.js).
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 
@@ -64,7 +64,7 @@ async function fetch() {
   console.log('\n🌪️  Fetching SPC tornado reports...');
   let response;
   try {
-    response = await axios.get(`${BASE_URL}/${TORNADO_LAYER}/query`, {
+    response = await http.get(`${BASE_URL}/${TORNADO_LAYER}/query`, {
       params: { where: '1=1', outFields: '*', resultRecordCount: 500, f: 'json', outSR: 4326 },
       timeout: 15000
     });

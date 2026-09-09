@@ -8,12 +8,12 @@
  * Authoritative, human-reported wildfires with name / acreage / containment.
  * Serves two roles:
  *   1. Its own map layer ('Wildfire Incident') — named fires.
- *   2. getActiveFirePoints() — corroborates NASA FIRMS satellite detections
- *      so persistent industrial/agricultural thermal sources are not shown as
- *      wildfires (see firms.js gating).
+ *   2. Its stored rows corroborate NASA FIRMS satellite detections
+ *      (firms.js reads them with getActivePoints('NIFC')) so persistent
+ *      industrial/agricultural thermal sources are not shown as wildfires.
  */
 
-const axios = require('axios');
+const { http } = require('../http');
 const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'NIFC';
@@ -49,14 +49,10 @@ async function fetchRaw() {
   const qs = `where=${encodeURIComponent("IncidentTypeCategory='WF'")}` +
     `&outFields=${encodeURIComponent(FIELDS.join(','))}` +
     `&f=geojson&resultRecordCount=2000`;
-  const res = await axios.get(`${BASE}?${qs}`, { timeout: 25000 });
+  const res = await http.get(`${BASE}?${qs}`, { timeout: 25000 });
   const feats = (res.data && res.data.features) || [];
   return feats.filter(f => f.geometry && Array.isArray(f.geometry.coordinates));
 }
-
-// Module-level cache shared between fetch() (display) and getActiveFirePoints()
-// (corroboration) so a fetch cycle hits the ArcGIS endpoint at most once.
-let _cache = { at: 0, points: [] };
 
 async function fetch() {
   console.log('\n🔥 Fetching wildfire incidents from NIFC/WFIGS...');
@@ -71,7 +67,6 @@ async function fetch() {
 
   const now = Date.now();
   const events = [];
-  const points = [];
 
   for (const f of feats) {
     const a = f.properties;
@@ -80,7 +75,6 @@ async function fetch() {
     if (!isActiveWF(a, now)) continue;
 
     const acres = a.IncidentSize || 0;
-    points.push({ lat, lon, acres });
 
     const sev = severity(acres);
     const contained = a.PercentContained == null ? 'Unknown' : `${a.PercentContained}%`;
@@ -107,40 +101,14 @@ async function fetch() {
     });
   }
 
-  _cache = { at: now, points };
   await storeEvents(SOURCE_NAME, events, TTL.NIFC);
   console.log(`   ✓ Stored ${events.length} active wildfire incidents`);
   await setLastUpdate(SOURCE_NAME, events.length);
   return { total: feats.length, stored: events.length };
 }
 
-/**
- * Active-fire points {lat, lon, acres} for FIRMS corroboration.
- * Cached (default 10 min) so the FIRMS gate reuses the latest fetch.
- */
-async function getActiveFirePoints(maxAgeMs = 10 * 60 * 1000) {
-  if (_cache.at && Date.now() - _cache.at < maxAgeMs) return _cache.points;
-  try {
-    const feats = await fetchRaw();
-    const now = Date.now();
-    _cache = {
-      at: now,
-      points: feats
-        .filter(f => isInUS(f.geometry.coordinates[1], f.geometry.coordinates[0]) && isActiveWF(f.properties, now))
-        .map(f => ({
-          lat: f.geometry.coordinates[1],
-          lon: f.geometry.coordinates[0],
-          acres: f.properties.IncidentSize || 0
-        }))
-    };
-  } catch (e) {
-    console.warn(`   [nifc] getActiveFirePoints fetch failed, using stale (${_cache.points.length}): ${e.message}`);
-  }
-  return _cache.points;
-}
-
 async function getActive() {
   return getActiveEvents(SOURCE_NAME);
 }
 
-module.exports = { fetch, getActive, getActiveFirePoints, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, isActiveWF, severity };

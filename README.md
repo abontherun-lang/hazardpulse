@@ -45,7 +45,7 @@ That's it. No Node.js, no database setup — Docker handles everything.
 git clone https://github.com/abontherun-lang/hazardpulse.git
 cd hazardpulse
 
-# 2. (Optional) Set your contact email for NOAA
+# 2. (Optional) Set your contact info for NOAA
 cp .env.example .env
 #    Edit .env and replace your-email@example.com with your email.
 
@@ -119,7 +119,7 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 - VIIRS fire detections gated by intensity or NIFC corroboration, with a TIGER border backstop
 - GDELT noise reduction — unreliable CAMEO codes dropped, multi-source confirmation required
 - FEMA IPAWS alerts routed to correct layers (emergencies, missing persons, fire)
-- Redis response cache with ETag/304 support
+- In-memory response cache with a content-hash ETag, so an unchanged map is a 304
 - Gzip compression, rate limiting, XSS sanitization
 - CI builds, tests, and publishes the Docker image to GHCR on every merge
 
@@ -213,15 +213,16 @@ docker compose up -d
 ```
 hazardpulse/
 ├── docker-compose.yml         Two containers: app + PostGIS
-├── Dockerfile                 Node.js + Redis (response cache)
-├── start.sh                   Container entrypoint
+├── Dockerfile                 Node.js + PostGIS client tools
 ├── .env.example               Environment variable template
 ├── .github/workflows/ci.yml   Tests, Docker build, GHCR publish
 ├── backend/
 │   ├── server.js              Express API + cron scheduling
 │   ├── db.js                  PostgreSQL/PostGIS connection pool
-│   ├── schema.sql             Database schema (events, source_meta, scanners)
-│   ├── redis-client.js        Redis connection (response cache)
+│   ├── schema.sql             Database schema (events, source_meta, scanners, app_meta)
+│   ├── migrations.js          One-shot data migrations
+│   ├── layers.json / layers.js  The layer registry (groups, colors, legend, presets)
+│   ├── http.js                One HTTP client for every upstream feed
 │   ├── ugc_centroids.json     NOAA zone geocoding lookup (7,880 zones)
 │   ├── test/                  Unit tests (node:test, no DB or network needed)
 │   ├── scripts/
