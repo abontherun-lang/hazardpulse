@@ -410,4 +410,7 @@ async function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-start();
+// Tests require the app without starting it.
+module.exports = { app, SOURCES, rebuildCache, fetchSources };
+
+if (require.main === module) start();

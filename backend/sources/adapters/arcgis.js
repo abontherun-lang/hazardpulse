@@ -13,31 +13,35 @@ const { http } = require('../../http');
  * @param {object} feed — config entry from dispatch-feeds.json
  * @returns {Array<{id, type, category, lat, lon, time, address, city}>}
  */
-async function fetchIncidents(feed) {
-  const { endpoint, fields, crisisTypes, hoursBack, categoryMap } = feed;
-
-  // Build where clause
+/**
+ * The ArcGIS where clause for a feed. Pure; `now` is injectable for tests.
+ * ArcGIS date comparisons need the TIMESTAMP keyword.
+ */
+function buildWhere(feed, now = Date.now()) {
+  const { fields, crisisTypes, hoursBack } = feed;
   const whereParts = [];
 
-  // Time filter — ArcGIS needs TIMESTAMP keyword for date comparisons
   if (fields.time) {
-    const since = new Date(Date.now() - (hoursBack || 24) * 3600000)
+    const since = new Date(now - (hoursBack || 24) * 3600000)
       .toISOString().replace('T', ' ').replace('Z', '').split('.')[0];
     whereParts.push(`${fields.time} > TIMESTAMP '${since}'`);
   }
 
-  // Type whitelist
   if (crisisTypes && crisisTypes.length > 0) {
     const escaped = crisisTypes.map(t => `'${t.replace(/'/g, "''")}'`).join(',');
     whereParts.push(`${fields.type} IN (${escaped})`);
   }
 
-  // Require coordinates
   if (fields.lat && fields.lon) {
     whereParts.push(`${fields.lat} IS NOT NULL`);
   }
 
-  const where = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
+  return whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
+}
+
+async function fetchIncidents(feed) {
+  const { endpoint, fields } = feed;
+  const where = buildWhere(feed);
 
   // Build the query string by hand — the client's params serializer and
   // URLSearchParams both encode spaces as '+', which ArcGIS rejects
@@ -86,4 +90,4 @@ function normalize(attrs, feed) {
   };
 }
 
-module.exports = { fetchIncidents, normalize };
+module.exports = { fetchIncidents, normalize, buildWhere };
