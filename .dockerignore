@@ -1,4 +1,5 @@
 backend/node_modules
+backend/test
 backend/.env
 docs/
 *.md

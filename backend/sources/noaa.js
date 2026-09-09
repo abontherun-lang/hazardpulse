@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { pool } = require('../db');
 const { text, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { colorOf } = require('../layers');
 
 // Load UGC centroids for fallback geocoding when TIGER lookup fails
 let ugcCentroids = {};
@@ -68,19 +69,6 @@ const TARGET_EVENTS = [
   'Earthquake Warning',
   'Special Weather Statement', 'Winter Weather Advisory', 'Wind Advisory'
 ];
-
-const ALERT_COLORS = {
-  'Tornado Warning': '#0D47A1', 'Tornado Watch': '#1565C0',
-  'Severe Thunderstorm Warning': '#1976D2', 'Severe Thunderstorm Watch': '#42A5F5',
-  'Special Weather Statement': '#546E7A', 'Winter Weather Advisory': '#78909C', 'Wind Advisory': '#607D8B',
-  'Flood Warning': '#1A237E', 'Flood Watch': '#3949AB',
-  'Red Flag Warning': '#E65100', 'Fire Weather Watch': '#FF8F00',
-  'Hurricane Warning': '#006064', 'Hurricane Watch': '#00838F',
-  'Tropical Storm Warning': '#0097A7', 'Tropical Storm Watch': '#26C6DA',
-  'Storm Surge Warning': '#004D40', 'Storm Surge Watch': '#00897B',
-  'Tsunami Warning': '#01579B', 'Tsunami Watch': '#0277BD', 'Tsunami Advisory': '#0288D1',
-  'Earthquake Warning': '#795548'
-};
 
 /**
  * Resolve SAME/FIPS codes to a merged county polygon via TIGER boundaries.
@@ -200,7 +188,7 @@ async function fetch() {
         headline: text(props.headline),
         description: text(props.description),
         areaDesc: text(props.areaDesc),
-        color: ALERT_COLORS[props.event] || '#808080',
+        color: colorOf(props.event),
         sourceUrl: props['@id'] || '',
         timestamp: new Date(alertTime).getTime(),
         geometry,
