@@ -31,6 +31,7 @@ const axios = require('axios');
 const { connect: connectDb, pool } = require('./db');
 const { connect: connectRedis, client } = require('./redis-client');
 const { getAllActiveEvents } = require('./sources/common');
+const { registry: layerRegistry } = require('./layers');
 
 // ===================== DATA SOURCES =====================
 // Each source exports: { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
@@ -255,6 +256,12 @@ app.get('/api/weather', async (req, res) => {
   } else {
     res.status(404).json({ error: 'Weather not available' });
   }
+});
+
+// Layer registry: groups, legend rows, colors, presets. Static per build.
+app.get('/api/layers', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(layerRegistry);
 });
 
 app.get('/api/location', (req, res) => {

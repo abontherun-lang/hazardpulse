@@ -16,6 +16,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { text, sanitizeUrl, isInUS, TTL, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { colorOf } = require('../layers');
 
 // Load UGC centroids for SAME/FIPS code geocoding fallback
 let ugcCentroids = {};
@@ -100,14 +101,14 @@ function classify(event, headline) {
   if (combined.includes('missing') || combined.includes('endangered') ||
       combined.includes('child abduction') || combined.includes('amber alert') ||
       combined.includes('silver alert') || combined.includes('safe alert'))
-    return { category: 'Missing Persons', color: '#FF6F00' };
+    return { category: 'Missing Persons' };
 
   if (event.toLowerCase().includes('fire') || event.toLowerCase().includes('red flag'))
-    return { category: 'Wildfire', color: '#E65100' };
+    return { category: 'Wildfire' };
 
   if (event.toLowerCase().includes('administrative')) return null;
 
-  return { category: 'Official Alerts', color: '#D50000' };
+  return { category: 'Official Alerts' };
 }
 
 // CAP text is XML-escaped ("Sheriff&apos;s Office", "A&amp;W"); decode it here so
@@ -202,7 +203,7 @@ async function fetch() {
       headline: text(headline || event),
       description: text((extract('description') || '').slice(0, 500)),
       areaDesc: text(extract('areaDesc') || extract('senderName')),
-      color: cls.color,
+      color: colorOf(cls.category),
       sourceUrl: sanitizeUrl(extract('web')),
       timestamp: new Date(sent).getTime() || Date.now(),
       geometry,

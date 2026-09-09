@@ -84,15 +84,17 @@ This is the most common contribution. Each source is a single file in `backend/s
    ];
    ```
 
-5. **Add the UI** — add a checkbox in `frontend/index.html` and the layer type in `frontend/app.js` `LAYER_GROUPS`.
+5. **Register the layer** — add the new `category` value to `backend/layers.json`:
+   a `types` entry (color, style, cluster) and a row in the right group. That
+   one file drives the backend colors (`colorOf()` in `backend/layers.js`),
+   the generated legend, the status list, and the presets. `npm test`
+   checks the registry for consistency; a `buildXMarker` function in
+   `frontend/app.js` is only needed if the marker looks different from the
+   existing ones (see `buildLayers`).
 
-6. **Verify** — check all items from the layer checklist:
-   - Every checkbox `data-type` has a matching `DATA_TYPES` entry in app.js
-   - Every `DATA_TYPES` entry has a checkbox in index.html
-   - The backend feature's `source` property routes correctly in `buildLayers`
-   - Features with `null` geometry don't crash the build loop
-   - `/api/all` returns features with correct `source` values
-   - Toggle on/off works for the new layer
+6. **Verify** — `/api/all` returns features with the new `source` and
+   `category` values, the legend row toggles them, and features with `null`
+   geometry don't crash the build loop.
 
 ### Adding a new dispatch city
 
