@@ -14,7 +14,7 @@
  */
 
 const { http } = require('../http');
-const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, isInUS, TTL, storeEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'NIFC';
 const CRON_SCHEDULE = '15 * * * *'; // hourly, offset from FIRMS
@@ -107,8 +107,4 @@ async function fetch() {
   return { total: feats.length, stored: events.length };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, isActiveWF, severity };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, isActiveWF, severity };

@@ -61,7 +61,7 @@ async function connect() {
     if (tigerCount === 0) {
       console.log('⏳ Loading Census TIGER/Line boundary data (first startup, ~2-3 min)...');
       try {
-        execSync('sh /app/backend/scripts/load-tiger.sh', {
+        execSync(`sh ${path.join(__dirname, 'scripts', 'load-tiger.sh')}`, {
           stdio: 'inherit',
           env: { ...process.env, DATABASE_URL: pool.options.connectionString || process.env.DATABASE_URL }
         });

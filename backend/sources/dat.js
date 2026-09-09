@@ -17,7 +17,7 @@
  */
 
 const { http } = require('../http');
-const { text, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, TTL, storeEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 
 const SOURCE_NAME = 'NWS DAT';
@@ -122,8 +122,4 @@ async function fetch() {
   return { total: feats.length, stored: events.length };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, normalizeSurvey, severity };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, normalizeSurvey, severity };

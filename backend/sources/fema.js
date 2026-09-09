@@ -16,7 +16,7 @@
  */
 
 const { http } = require('../http');
-const { text, sanitizeUrl, isInUS, TTL, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, isInUS, TTL, storeEvent, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 const { sameCodesToPoint } = require('./geo');
 
@@ -158,8 +158,4 @@ async function fetch() {
   return { total: alerts.length, stored, skipped };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, classify, parsePolygon, parseCircle, decodeXml };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, classify, parsePolygon, parseCircle, decodeXml };

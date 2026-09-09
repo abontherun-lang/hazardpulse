@@ -12,7 +12,7 @@ Real-time crisis map for the United States. One command to run. No API keys. No 
 **10 polled data sources** — NOAA weather alerts, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, SPC preliminary tornado reports, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
 
 **What you get:**
-- Live interactive map tracking ~2,000 events at a time, refreshed on per-source schedules
+- Live interactive map tracking ~1,500 events at a time, refreshed on per-source schedules
 - 9 layer groups you can toggle independently — weather, hurricanes/tropical, earthquakes/tsunami, wildfires, volcanoes, emergency alerts, 911 dispatch, civil/conflict, satellite & radar
 - 6 one-click Quick Views: All, Critical (life-safety only), Weather, Seismic, Fire, Conflict
 - Satellite fire detections cross-checked against official NIFC incidents — high-intensity or corroborated fires only, not industrial/agricultural thermal noise
@@ -223,13 +223,15 @@ hazardpulse/
 │   ├── migrations.js          One-shot data migrations
 │   ├── layers.json / layers.js  The layer registry (groups, colors, legend, presets)
 │   ├── http.js                One HTTP client for every upstream feed
-│   ├── ugc_centroids.json     NOAA zone geocoding lookup (7,880 zones)
+│   ├── data/                  ugc_centroids.json (7,880 NOAA zones), scanner_lookup.json (27,302 Broadcastify ids)
 │   ├── test/                  Unit tests (node:test, no DB or network needed)
 │   ├── scripts/
 │   │   ├── load-tiger.sh      Downloads Census TIGER boundary data into PostGIS
 │   │   └── load-scanners.js   Imports Broadcastify scanner data into PostGIS
 │   └── sources/               One module per data source
 │       ├── common.js          Storage layer (storeEvents → PostGIS + reverse geocode)
+│       ├── alert-policy.js    Which NWS alerts are shown (NOAA + FEMA)
+│       ├── geo.js             FIPS tables, centroids, SAME code lookup
 │       ├── noaa.js            NOAA weather alerts
 │       ├── usgs.js            USGS earthquakes
 │       ├── firms.js           NASA FIRMS satellite fire detections
@@ -240,7 +242,7 @@ hazardpulse/
 │       ├── gdelt.js           GDELT conflict/unrest
 │       ├── fema.js            FEMA IPAWS emergency alerts
 │       ├── dispatch.js        911 dispatch aggregator
-│       ├── dispatch-feeds.json Feed configs for 5 cities
+│       ├── dispatch-feeds.json Feed configs for 4 cities
 │       └── adapters/          Platform-specific API adapters
 │           ├── socrata.js     Socrata SODA API adapter
 │           └── arcgis.js      ArcGIS FeatureServer adapter
@@ -248,14 +250,14 @@ hazardpulse/
 │   ├── index.html             Map UI + layer panel
 │   ├── app.js                 Leaflet map + data rendering
 │   ├── styles.css             UI styles
-│   └── scanner_lookup.json    Source data for scanner DB table (27,302 entries)
+│   └── vendor/                Leaflet + markercluster, served locally
 └── docs/                      Documentation and research
 ```
 
 ## Adding a New Data Source
 
 1. Create `backend/sources/yoursource.js` (copy `usgs.js` as a template)
-2. Export `{ fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX }`
+2. Export `{ fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX }`
 3. Add `require('./sources/yoursource')` to the `SOURCES` array in `server.js`
 4. Register the new `category` in `backend/layers.json` (color, style, legend row) — the legend, status list and presets are generated from it
 
@@ -265,6 +267,7 @@ Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. 
 
 | File | Description |
 |------|-------------|
+| [AGENTS.md](AGENTS.md) | Working notes for contributors and agents: layout, gotchas, deploy path |
 | [docs/architecture.md](docs/architecture.md) | System design, tech stack, data flow, and schema |
 | [docs/data-sources.md](docs/data-sources.md) | Active and planned data sources with API details |
 | [docs/roadmap.md](docs/roadmap.md) | Development status and future plans |
