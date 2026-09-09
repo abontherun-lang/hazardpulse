@@ -14,7 +14,7 @@
  */
 
 const { http } = require('../http');
-const { text, sanitizeUrl, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, TTL, storeEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'USGS Volcano';
 const CRON_SCHEDULE = '0 * * * *'; // hourly
@@ -79,8 +79,4 @@ async function fetch() {
   return { total: elevated.length, stored: events.length };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, isElevated };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, isElevated };

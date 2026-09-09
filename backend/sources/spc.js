@@ -17,7 +17,7 @@
  */
 
 const { http } = require('../http');
-const { text, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, isInUS, TTL, storeEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 
 const SOURCE_NAME = 'SPC';
@@ -84,8 +84,4 @@ async function fetch() {
   return { total: features.length, stored: events.length };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, normalizeReport };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, normalizeReport };

@@ -1,7 +1,7 @@
 # GDELT Data Quality — Noise Reduction
 
-**Date**: 2026-03-29
-**Status**: Approaches 1 and 4 implemented
+**Date**: 2026-03-29 (thresholds updated 2026-09-08 to match the code)
+**Status**: Approaches 1 and 4 implemented, plus an explicit country-code filter and a TIGER state-join prune (June 2026)
 
 ## The Problem
 
@@ -26,12 +26,11 @@ GDELT uses NLP to auto-classify news articles into CAMEO event codes. In the US 
 - 140-145: Protest, Demonstrate, Strike, Violent Protest (root 14)
 - 180-181, 183-186: Conventional Force, Assault, Abduct, Destroy Property, Armed Attack (root 18)
 - 191: Gunfire (root 19)
-- 192: Bombing (root 19)
 - 200-203: Mass Violence, Mass Killing, Ethnic Cleansing (root 20)
 
 ### Approach 4: Confidence Scoring via NumArticles
 
-Added `NumArticles >= 2` filter. GDELT column 33 indicates how many news articles reference the same event. Single-source events are more likely misclassifications. Requiring 2+ articles provides multi-source confirmation.
+Added a `NumArticles >= 3` filter (started at 2, raised to 3). GDELT column 33 indicates how many news articles reference the same event. Single-source events are more likely misclassifications. Requiring 3+ articles provides multi-source confirmation.
 
 **Combined impact**: ~1,500 events reduced to ~400-500, with significantly higher accuracy.
 

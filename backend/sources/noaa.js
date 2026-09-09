@@ -14,7 +14,7 @@
 
 const { http } = require('../http');
 const { pool } = require('../db');
-const { text, storeEvent, getActiveEvents, setLastUpdate } = require('./common');
+const { text, storeEvent, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 const { keepAlert, categoryFor } = require('./alert-policy');
 const { sameCodesToPoint } = require('./geo');
@@ -128,8 +128,4 @@ async function fetch() {
   return { total: allAlerts.length, stored };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX };

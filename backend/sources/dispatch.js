@@ -8,7 +8,7 @@
  * To add a new platform: create an adapter in adapters/ and register it below.
  */
 
-const { text, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, TTL, storeEvents, setLastUpdate } = require('./common');
 const { colorOf } = require('../layers');
 
 // Platform adapters — add new ones here
@@ -98,8 +98,4 @@ async function fetch() {
   return { stored: totalStored, errors: totalErrors, feeds: perFeed };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX };

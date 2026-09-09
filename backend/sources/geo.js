@@ -44,7 +44,7 @@ const STATE_CENTROIDS = {
 // UGC county centroids ("INC097" → [lat, lon]), bundled from NOAA zone data.
 let ugcCentroids = {};
 try {
-  ugcCentroids = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ugc_centroids.json'), 'utf-8'));
+  ugcCentroids = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'ugc_centroids.json'), 'utf-8'));
 } catch (_) {}
 
 /**

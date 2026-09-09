@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * load-scanners.js — Import scanner_lookup.json and state FIPS codes into PostGIS.
+ * load-scanners.js — Import data/scanner_lookup.json and state FIPS codes into PostGIS.
  *
  * Usage:
  *   node backend/scripts/load-scanners.js
@@ -22,7 +22,7 @@ async function load() {
   const client = await pool.connect();
   try {
     // Load scanner lookup JSON
-    const jsonPath = path.join(__dirname, '..', '..', 'frontend', 'scanner_lookup.json');
+    const jsonPath = path.join(__dirname, '..', 'data', 'scanner_lookup.json');
     if (!fs.existsSync(jsonPath)) {
       console.error('scanner_lookup.json not found at', jsonPath);
       return;
