@@ -15,7 +15,8 @@ These are currently integrated and running in production. All sources write to a
 - **Auth**: None (User-Agent with contact info recommended)
 - **Update**: Every 15 minutes
 - **Expiry**: Dynamic (based on alert expiry time, minimum 1 hour)
-- **Notes**: Geometry can be polygon or point. Some alerts have no geometry — we geocode those via bundled UGC zone centroids (7,880 zones). Severity levels: Extreme > Severe > Moderate > Minor.
+- **Which alerts**: decided in `backend/sources/alert-policy.js` — every NWS *Warning* except marine products (Small Craft, Gale, Hazardous Seas, Marine, Surf, Rip Current…), plus an allow-list of watches, advisories, statements and civil emergencies. Warnings not listed in `layers.json` land in the "Other NWS Alerts" row rather than being dropped. Before 2026-09-08 a hand list of 21 event names kept 18 of 358 live alerts and missed Flash Flood Warning and Extreme Heat Warning.
+- **Notes**: Geometry can be polygon or point. Some alerts have no geometry — we geocode those via TIGER county polygons, then bundled UGC county centroids (7,880 zones), then the state centroid (`geo.js`). Severity levels: Extreme > Severe > Moderate > Minor.
 
 ### USGS Earthquake Hazards Program
 - **Data**: Earthquake detections with magnitude, depth, and location
@@ -77,7 +78,7 @@ These are currently integrated and running in production. All sources write to a
 - **Update**: Every 15 minutes
 - **Expiry**: 6 hours
 - **Props**: `urgency`, `femaEvent`, `instruction`, `senderName` (stored in JSONB)
-- **Notes**: Alerts routed to appropriate UI layers (emergency alerts, missing persons, wildfire). Contains polygon/circle geometry or FIPS county codes. Weather duplicates skipped (NOAA covers those).
+- **Notes**: Alerts routed to appropriate UI layers (emergency alerts, missing persons, wildfire). Contains polygon/circle geometry or FIPS county codes. Messages whose CAP `<sender>` is the NWS (`w-nws.webmaster@noaa.gov`, about a third of the archive) are skipped: the NOAA feed already carries them, sooner. Everything else is a local authority the NWS feed does not have.
 
 ### 911 Dispatch
 - **Data**: Municipal CAD/dispatch feeds — fires, violence, accidents, hazmat

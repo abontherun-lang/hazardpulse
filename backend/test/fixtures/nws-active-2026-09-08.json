@@ -1,0 +1,327 @@
+{
+ "recorded": "2026-09-08",
+ "source": "https://api.weather.gov/alerts/active",
+ "totalAlerts": 356,
+ "alerts": [
+  {
+   "event": "Small Craft Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 156
+  },
+  {
+   "event": "Small Craft Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 55
+  },
+  {
+   "event": "Gale Warning",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 23
+  },
+  {
+   "event": "Heat Advisory",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 22
+  },
+  {
+   "event": "Extreme Heat Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 13
+  },
+  {
+   "event": "Gale Warning",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 10
+  },
+  {
+   "event": "Flood Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 9
+  },
+  {
+   "event": "High Surf Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 6
+  },
+  {
+   "event": "Gale Watch",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Future",
+   "count": 5
+  },
+  {
+   "event": "Wind Advisory",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 5
+  },
+  {
+   "event": "Heat Advisory",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 5
+  },
+  {
+   "event": "Special Weather Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 4
+  },
+  {
+   "event": "Beach Hazards Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 4
+  },
+  {
+   "event": "Air Quality Alert",
+   "severity": "Unknown",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Unknown",
+   "count": 3
+  },
+  {
+   "event": "High Surf Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 3
+  },
+  {
+   "event": "Hydrologic Outlook",
+   "severity": "Unknown",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Future",
+   "count": 3
+  },
+  {
+   "event": "Extreme Heat Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 3
+  },
+  {
+   "event": "Fire Weather Watch",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Future",
+   "count": 2
+  },
+  {
+   "event": "High Wind Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 2
+  },
+  {
+   "event": "Coastal Flood Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 2
+  },
+  {
+   "event": "Fire Weather Watch",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Future",
+   "count": 2
+  },
+  {
+   "event": "Flash Flood Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Immediate",
+   "count": 1
+  },
+  {
+   "event": "Test Message",
+   "severity": "Unknown",
+   "status": "Test",
+   "messageType": "Alert",
+   "urgency": "Unknown",
+   "count": 1
+  },
+  {
+   "event": "Special Marine Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Immediate",
+   "count": 1
+  },
+  {
+   "event": "Severe Thunderstorm Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Immediate",
+   "count": 1
+  },
+  {
+   "event": "Red Flag Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Flood Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Flood Watch",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Future",
+   "count": 1
+  },
+  {
+   "event": "Dust Advisory",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Red Flag Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Frost Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Hazardous Seas Warning",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Beach Hazards Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Tropical Cyclone Local Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Freeze Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Coastal Flood Advisory",
+   "severity": "Minor",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Flood Warning",
+   "severity": "Severe",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Immediate",
+   "count": 1
+  },
+  {
+   "event": "Lake Wind Advisory",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Rip Current Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Update",
+   "urgency": "Expected",
+   "count": 1
+  },
+  {
+   "event": "Rip Current Statement",
+   "severity": "Moderate",
+   "status": "Actual",
+   "messageType": "Alert",
+   "urgency": "Expected",
+   "count": 1
+  }
+ ]
+}

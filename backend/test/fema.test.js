@@ -14,10 +14,13 @@ test('classify routes missing-person, fire, and civil alerts', () => {
   assert.equal(classify('Civil Emergency Message', 'Boil water').category, 'Official Alerts');
 });
 
-test('classify skips tests, demos, and NWS weather duplicates', () => {
+test('classify skips tests, demos, and anything the NWS sent (the NOAA feed has it)', () => {
   assert.equal(classify('Required Weekly Test', ''), null);
   assert.equal(classify('Demo Warning', 'practice'), null);
-  assert.equal(classify('Tornado Warning', ''), null);
+  assert.equal(classify('Tornado Warning', '', 'w-nws.webmaster@noaa.gov'), null);
+  assert.equal(classify('Flash Flood Warning', '', 'w-nws.webmaster@noaa.gov'), null);
+  // A local authority's weather message is not a duplicate
+  assert.equal(classify('Flash Flood Warning', 'Evacuate low areas', 'IN_City_of_Fort_Wayne').category, 'Official Alerts');
   // "protest" must not match the \btest\b skip
   assert.notEqual(classify('Local Area Emergency', 'protest downtown'), null);
 });
