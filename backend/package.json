@@ -19,15 +19,15 @@
   ],
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "adm-zip": "^0.5.16",
-    "axios": "^1.6.0",
+    "adm-zip": "^0.6.0",
+    "axios": "^1.20.0",
     "compression": "^1.8.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^8.3.1",
-    "node-cron": "^3.0.3",
-    "pg": "^8.13.0"
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "express-rate-limit": "^8.7.0",
+    "node-cron": "^4.6.0",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
