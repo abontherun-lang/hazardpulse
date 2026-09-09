@@ -287,7 +287,7 @@ Dispatch module calls `common.js` → `storeFeature()` / `pointFeature()` — sa
 
 ### One source module, not one per city
 
-`dispatch.js` registered once in `server.js`. Loops through `dispatch-feeds.json` internally. From server's perspective, it's just another source with `fetch()`, `getActive()`, `PREFIX`, `CRON_SCHEDULE`.
+`dispatch.js` registered once in `server.js`. Loops through `dispatch-feeds.json` internally. From server's perspective, it's just another source with `fetch()`, `PREFIX`, `CRON_SCHEDULE`.
 
 ### Failures are per-feed
 

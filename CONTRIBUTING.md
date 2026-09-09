@@ -48,16 +48,17 @@ This is the most common contribution. Each source is a single file in `backend/s
    ```javascript
    module.exports = {
      fetch,          // async — fetch from API, store in PostGIS via storeEvent/storeEvents
-     getActive,      // async — return getActiveEvents(SOURCE_NAME)
-     SOURCE_NAME,    // string — display name (e.g. "NOAA Weather")
+     SOURCE_NAME,    // string — the events.source value (e.g. "NOAA")
      CRON_SCHEDULE,  // string — cron expression (e.g. "*/15 * * * *")
      PREFIX,         // string — meta key in API response (e.g. "alert")
+     // AFTER: ['NIFC'] — optional, if fetch() reads another source's rows
    };
    ```
 
 3. **Use `storeEvent` or `storeEvents`** from `common.js`:
    ```javascript
-   const { storeEvent, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+   const { text, storeEvent, storeEvents, setLastUpdate } = require('./common');
+   const { http } = require('../http');   // the shared HTTP client — do not require axios directly
 
    // Single event (NOAA, FEMA — lower volume, may have polygon geometry)
    await storeEvent(SOURCE_NAME, id, {
@@ -72,6 +73,7 @@ This is the most common contribution. Each source is a single file in `backend/s
    await storeEvents(SOURCE_NAME, eventsArray, ttlSeconds);
    ```
    Reverse geocoding (state, county, city) and scanner link resolution happen automatically.
+   Pass text through `text()` and store it raw — the frontend escapes it once at render.
 
 4. **Register it** in `backend/server.js`:
    ```javascript

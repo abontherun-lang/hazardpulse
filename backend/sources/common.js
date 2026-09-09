@@ -3,11 +3,14 @@
  *
  * To add a new data source:
  * 1. Create a new file in sources/ (copy an existing one as template)
- * 2. Export { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX }
- * 3. Register it in server.js
+ * 2. Export { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX } (+ AFTER if it
+ *    reads another source's rows)
+ * 3. Register it in server.js and its categories in layers.json
  *
  * Each source normalizes data and calls storeEvent() / storeEvents(),
  * which writes to PostGIS with automatic reverse geocoding via TIGER/Line.
+ * Reads go through getAllActiveEvents() (the API cache) and
+ * getActivePoints() (cross-source corroboration).
  */
 
 const { pool } = require('../db');
@@ -47,7 +50,6 @@ function isInUS(lat, lon) {
 // ===================== TTL CONSTANTS =====================
 
 const TTL = {
-  WEATHER: 3600,      // 1 hour (or alert expiry)
   GDELT: 259200,      // 72 hours
   WILDFIRE: 86400,    // 24 hours
   EARTHQUAKE: 86400,  // 24 hours
@@ -395,42 +397,6 @@ function rowToFeature(row) {
 }
 
 /**
- * Get all active events for a single source as a GeoJSON FeatureCollection.
- *
- * @param {string} source - Source name (e.g. 'NOAA')
- * @returns {object} GeoJSON FeatureCollection with meta
- */
-async function getActiveEvents(source) {
-  const result = await pool.query(`
-    SELECT id, source, event, category, severity, headline, description,
-           area_desc, color, source_url,
-           EXTRACT(EPOCH FROM event_time) * 1000 AS timestamp,
-           ST_AsGeoJSON(geom)::json AS geometry,
-           props, state_abbr, state_name, county, city
-    FROM events
-    WHERE source = $1 AND (expires_at IS NULL OR expires_at > NOW())
-      AND event_time > NOW() - (INTERVAL '1 hour' * $2)
-    ORDER BY event_time DESC
-  `, [source, DISPLAY_WINDOW_HOURS]);
-
-  const metaResult = await pool.query(
-    'SELECT last_update, last_count FROM source_meta WHERE source = $1',
-    [source]
-  );
-  const meta = metaResult.rows[0] || {};
-
-  return {
-    type: 'FeatureCollection',
-    features: result.rows.map(rowToFeature),
-    meta: {
-      count: result.rows.length,
-      source,
-      lastUpdate: meta.last_update || null
-    }
-  };
-}
-
-/**
  * Get ALL active events across all sources. Single query, one DB round-trip.
  * Returns features + per-source meta + time bounds for the UI slider.
  *
@@ -560,6 +526,6 @@ async function countActiveEvents(source) {
 module.exports = {
   text, sanitizeUrl, isInUS, haversineKm, buildGeoJSON, cronIntervalMinutes,
   TTL, storeEvent, storeEvents, buildBatchRows,
-  getActiveEvents, getAllActiveEvents, getActivePoints,
+  getAllActiveEvents, getActivePoints,
   setLastUpdate, deleteWhereNoUSState, countActiveEvents
 };

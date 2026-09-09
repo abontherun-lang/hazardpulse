@@ -7,7 +7,7 @@
  */
 
 const { http } = require('../http');
-const { text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents, setLastUpdate } = require('./common');
+const { text, sanitizeUrl, isInUS, TTL, storeEvents, setLastUpdate } = require('./common');
 
 const SOURCE_NAME = 'USGS';
 const CRON_SCHEDULE = '*/5 * * * *'; // every 5 minutes
@@ -73,8 +73,4 @@ async function fetch() {
   return { total: features.length, stored: events.length };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX };

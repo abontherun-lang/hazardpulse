@@ -1,216 +1,215 @@
 # HazardPulse Architecture
 
-System design and technical decisions for the HazardPulse crisis visualization platform.
+System design and technical decisions. Kept to what the code does today; the
+git log has the history.
 
 ---
 
 ## Architecture
 
-HazardPulse runs as two Docker containers: an app server (Node.js + Redis cache) and a PostGIS database. Data flows from external APIs through source modules into a normalized PostGIS schema, then out to the browser as cached GeoJSON.
+Two Docker containers: an app server (Node.js) and a PostGIS database. Data
+flows from external APIs through source modules into a normalized PostGIS
+schema, then out to the browser as one cached GeoJSON document.
 
 ```
 ┌──────────────────────────────────────────────┐
-│         App Container (Node.js + Redis)       │
+│           App Container (Node.js)            │
 │                                              │
-│   ┌────────────────┐   ┌──────────────────┐  │
-│   │  Redis          │   │  Node.js/Express │  │
-│   │  - JSON cache   │◄──│  - REST API      │  │
-│   │  - ETag store   │   │  - Cron scheduler│  │
-│   │                 │   │  - Static files  │  │
-│   └────────────────┘   └────────┬─────────┘  │
-│                                  │            │
-└──────────────────────────────────┼────────────┘
-                                   │ :3000
-                                   ▼
-                            ┌─────────────┐
-                            │  Browser    │
-                            │  Leaflet map│
-                            └─────────────┘
+│   Express: REST API + static frontend        │
+│   node-cron: per-source fetch schedules      │
+│   In-memory JSON cache of /api/all (+ETag)   │
+│                                              │
+└──────────────────────┬───────────────────────┘
+                       │ :3000
+                       ▼
+                ┌─────────────┐
+                │  Browser    │
+                │  Leaflet map│
+                └─────────────┘
 
 ┌──────────────────────────────────────────────┐
-│         DB Container (PostGIS)                │
+│         DB Container (PostGIS)               │
 │                                              │
-│   events table ──── normalized crisis data   │
+│   events ────────── normalized hazard data   │
 │   tiger_states ──── Census state boundaries  │
 │   tiger_counties ── Census county boundaries │
 │   tiger_places ──── Census city boundaries   │
 │   scanners ──────── Broadcastify channel IDs │
 │   state_fips ────── State FIPS codes         │
-│   source_meta ───── Last update timestamps   │
-│                                              │
+│   source_meta ───── Last update per source   │
+│   app_meta ──────── Migrations that have run │
 └──────────────────────────────────────────────┘
 
-              ┌──────────────────────────────┐
-              │     External APIs (cron)      │
-              │  NOAA · USGS · FIRMS · GDELT │
-              │  FEMA · 911 Dispatch          │
-              └──────────────────────────────┘
+              ┌────────────────────────────────────┐
+              │        External APIs (cron)        │
+              │ NOAA · USGS · FIRMS · NIFC · SPC   │
+              │ DAT · Volcano · GDELT · FEMA · 911 │
+              └────────────────────────────────────┘
 ```
 
-## Data Flow
+## Startup order
 
-1. **Cron triggers** fire per data source schedule (5-15 min depending on source)
-2. **Source modules** fetch from external APIs, normalize data to a common shape
-3. **`storeEvent()`** writes to PostGIS with automatic reverse geocoding via TIGER spatial join
-4. **Scanner links** resolved at query time via DB join (county/city → Broadcastify channel ID)
-5. **`rebuildCache()`** runs a single query across all sources, serializes to JSON, stores in Redis
-6. **Frontend polls** `/api/all` every 5 minutes with ETag for 304 support
-7. **Map rebuilds** layer groups from the GeoJSON FeatureCollection
+`server.js` `start()`:
 
-## Database Schema
+1. Connect to PostGIS, apply `schema.sql` (idempotent), run any pending
+   migration from `migrations.js` (recorded in `app_meta`), load TIGER
+   boundaries and scanner data on first boot.
+2. Rebuild the response cache from whatever PostGIS already holds.
+3. **Listen.** A restart serves a stale map, never a blank one.
+4. Resolve the home-base location (env or IP geolocation).
+5. Initial fetch in two waves: every source, then the sources that read
+   other sources' rows (`AFTER`, currently FIRMS after NIFC and volcano).
+6. Schedule cron groups and the hourly expiry cleanup.
 
-### `events` — normalized crisis data (all sources write here)
+`/api/health` is 200 once Postgres answers (`status: "starting"` until the
+initial fetch completes, `"healthy"` after) and 503 when it does not; that is
+what the Docker healthcheck and the deploy script watch. SIGTERM and SIGINT
+close the server and the pool.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | TEXT PK | Unique event ID |
-| `source` | TEXT | Source name (`NOAA`, `USGS`, `NASA FIRMS`, etc.) |
-| `event` | TEXT | Event type label (e.g., `Tornado Warning`, `Earthquake`) |
-| `category` | TEXT | UI layer bucket (e.g., `Dispatch Fire`, `Official Alerts`) |
-| `severity` | TEXT | `Extreme` / `Severe` / `Moderate` / `Minor` / `Low` / `Micro` |
-| `headline` | TEXT | Brief title |
-| `description` | TEXT | Detailed text |
-| `area_desc` | TEXT | Geographic description from source |
-| `color` | TEXT | Hex color for rendering |
-| `source_url` | TEXT | Link to original source |
-| `event_time` | TIMESTAMPTZ | When the event happened |
-| `expires_at` | TIMESTAMPTZ | When to stop showing (replaces Redis TTL) |
-| `geom` | GEOMETRY(Geometry, 4326) | Point or Polygon — single column, GiST indexed |
-| `props` | JSONB | Source-specific extras (mag, depth, frp, confidence, etc.) |
-| `state_abbr` | TEXT | Reverse geocoded from TIGER (e.g., `IN`) |
-| `state_name` | TEXT | Reverse geocoded, lowercase (e.g., `indiana`) |
-| `county` | TEXT | Reverse geocoded, lowercase (e.g., `marion`) |
-| `city` | TEXT | Reverse geocoded, lowercase (e.g., `indianapolis`) |
+## Data flow
 
-County/city stored lowercase to join directly with the `scanners` table — no per-query function calls.
+1. **Cron triggers** fire per source (5 min to 3 h).
+2. **Source modules** fetch, normalize to the common event shape, and call
+   `storeEvent()` (one row, polygon-capable) or `storeEvents()` (batch:
+   one `INSERT … SELECT FROM unnest()` per 1000 rows, then one geocoding
+   `UPDATE`, in a transaction).
+3. **Reverse geocoding** at ingest: state, county and city via TIGER
+   spatial joins; polygons and lines use their centroid.
+4. **`rebuildCache()`** runs `getAllActiveEvents()` — one query with the
+   scanner joins and the display window — and serializes the
+   FeatureCollection. The ETag is a sha1 of the body.
+5. **Frontend** loads `/api/layers` once, then polls `/api/all` every five
+   minutes with `If-None-Match`; an unchanged map is a 304.
 
-### `scanners` — Broadcastify radio lookup (27,302 entries)
+## Source module interface
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `name` | TEXT | Lowercase place/county name |
-| `state_abbr` | TEXT | 2-letter state abbreviation |
-| `channel_id` | INTEGER | Broadcastify channel ID |
-
-Primary key: `(name, state_abbr)`. Joined at query time: `scanners.name = events.county` and `scanners.name = events.city`.
-
-### Reference tables
-
-- **`tiger_states`** / **`tiger_counties`** / **`tiger_places`** — Census TIGER/Line boundary polygons with GiST spatial indexes. Used for reverse geocoding at ingest time via `ST_Intersects`.
-- **`state_fips`** — State abbreviation → FIPS code. Used for state-level scanner fallback links.
-- **`source_meta`** — Last update timestamp and count per source.
-
-## File Structure
-
-```
-hazardpulse/
-  docker-compose.yml         App + PostGIS containers
-  Dockerfile                 Node.js + Redis (response cache)
-  start.sh                   Container entrypoint (starts Redis, then Node)
-  .env.example               Environment variable template
-  backend/
-    server.js                Express API + cron scheduling + cache rebuild
-    db.js                    PostgreSQL connection pool + schema init
-    schema.sql               DDL for events, scanners, source_meta, state_fips
-    redis-client.js          Redis connection (response cache only)
-    ugc_centroids.json       NOAA zone → lat/lon lookup (7,880 zones)
-    scripts/
-      load-tiger.sh          Downloads Census TIGER boundary data into PostGIS
-      load-scanners.js       Imports Broadcastify scanner data into PostGIS
-    sources/                 One module per data source
-      common.js              Storage + query layer (storeEvent, getAllActiveEvents)
-      noaa.js                NOAA weather alerts
-      usgs.js                USGS earthquakes
-      firms.js               NASA FIRMS wildfires
-      gdelt.js               GDELT conflict/unrest
-      fema.js                FEMA IPAWS emergency alerts
-      dispatch.js            911 dispatch aggregator
-      dispatch-feeds.json    Feed configs for dispatch cities
-      adapters/              Platform-specific API adapters
-        socrata.js           Socrata SODA API
-        arcgis.js            ArcGIS FeatureServer
-  frontend/
-    index.html               Map UI + layer control panel
-    app.js                   Leaflet map + data rendering
-    styles.css               Cyberpunk-themed UI
-    scanner_lookup.json      Source data for scanner DB import
-```
-
-## Technology Choices
-
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Runtime** | Node.js 20 + Express | JavaScript full-stack, async I/O, huge ecosystem |
-| **Database** | PostgreSQL 16 + PostGIS 3.4 | Gold standard for geospatial — spatial indexes, geometry types, 1000+ spatial functions |
-| **Cache** | Redis 7 (in-container) | Fast in-memory response cache, ETag storage |
-| **Geocoding** | Census TIGER/Line | Free, authoritative US boundaries, no API calls, no rate limits |
-| **Map** | Leaflet 1.9 | Free, lightweight (38KB), no API key, plugin ecosystem |
-| **Tiles** | OpenStreetMap | Completely free, no API key, community-maintained |
-| **Satellite** | Iowa State Mesonet | Free GOES-East tiles (IR, visible, water vapor) |
-| **Radar** | RainViewer | Free tier precipitation radar |
-| **Deployment** | Docker + Docker Compose | Two containers, one command, reproducible |
-| **Frontend** | Vanilla JS + CSS | No build step, instant iteration, ~800 lines total |
-
-## Source Module Interface
-
-Every data source is a single file in `backend/sources/` exporting:
+Every data source is a file in `backend/sources/` exporting:
 
 ```javascript
 module.exports = {
-  fetch,          // async (hoursBack?) — fetch from API, normalize, store in PostGIS
-  getActive,      // async () — return GeoJSON FeatureCollection from PostGIS
-  SOURCE_NAME,    // string — display name (e.g. "NOAA")
+  fetch,          // async (hoursBack?) — fetch from the API, normalize, store
+  SOURCE_NAME,    // string — the events.source value (e.g. "NOAA")
   CRON_SCHEDULE,  // string — cron expression (e.g. "*/15 * * * *")
-  PREFIX,         // string — meta key in API response (e.g. "alert", "quake")
+  PREFIX,         // string — meta key in /api/all (e.g. "alert")
+  AFTER,          // optional string[] — sources whose rows this one reads
 };
 ```
 
-Shared utilities in `common.js`:
-- `storeEvent(source, id, data, ttl)` — upsert a single event into PostGIS with TIGER reverse geocoding
-- `storeEvents(source, events, ttl)` — batch upsert in a single transaction (for high-volume sources)
-- `getActiveEvents(source)` — single query returning GeoJSON FeatureCollection for one source
-- `getAllActiveEvents(sources)` — single query for all sources with scanner JOINs and time bounds
-- `sanitize(str)` / `sanitizeUrl(str)` — HTML entity encoding for stored data
-- `isInUS(lat, lon)` — bounding box check (continental, AK, HI, PR, Guam)
+Register it in `SOURCES` in `server.js` and register every `category` it
+writes in `backend/layers.json`. Shared pieces:
 
-## Caching Strategy
+- `common.js` — `text()` (plain text, no escaping), `storeEvent`,
+  `storeEvents` / `buildBatchRows`, `getAllActiveEvents`, `getActivePoints`,
+  `deleteWhereNoUSState`, `isInUS`, `haversineKm`, `TTL`,
+  `cronIntervalMinutes`.
+- `http.js` — the one axios instance (User-Agent with contact info,
+  timeout, gzip, size cap).
+- `layers.js` / `layers.json` — the layer registry: `colorOf(type)` for the
+  backend, `GET /api/layers` for the browser.
+- `alert-policy.js` — which NWS alerts are shown; used by NOAA and FEMA.
+- `geo.js` — FIPS tables, state centroids, SAME code → point.
 
-- **PostGIS** is the persistent store — all events with `expires_at` column
-- **Redis** is a thin response cache — pre-built JSON string for `/api/all`, rebuilt after each fetch cycle
-- **In-memory** fallback — `cachedResponse` variable for fastest path
-- **Client-side** — ETag/If-None-Match for 304 responses, `Cache-Control: public, max-age=60`
-- **Compression** — gzip via Express compression middleware
-- **Expiry** — hourly cron job deletes events past `expires_at`; queries always filter `WHERE expires_at > NOW()`
+Text is stored raw. The frontend's `esc()` is the only place it is escaped.
 
-## API Endpoints
+## Sources
+
+| Module | Source | Schedule | Notes |
+|---|---|---|---|
+| `noaa.js` | NWS alerts API | 15 min | Filtered by `alert-policy.js`; geometry from the API, else TIGER county union, else centroid |
+| `usgs.js` | USGS earthquakes (24 h feed) | 5 min | US bounding box |
+| `firms.js` | NASA FIRMS VIIRS (CSV) | 3 h | Intensity or NIFC corroboration gate, volcano suppression, TIGER prune; `AFTER: NIFC, USGS Volcano` |
+| `nifc.js` | NIFC/WFIGS incidents (ArcGIS) | hourly :15 | Active wildland fires, sized by acreage |
+| `spc.js` | SPC tornado reports (ArcGIS) | 15 min | Preliminary local storm reports, unrated; id = time + place |
+| `dat.js` | NWS Damage Assessment Toolkit (ArcGIS) | hourly :30 | Surveyed tornado tracks with EF rating; storm date within 14 days |
+| `volcano.js` | USGS Volcano Hazards | hourly | Elevated alert levels only |
+| `gdelt.js` | GDELT v2 exports (15-min zips) | 15 min | CAMEO filter, NumArticles ≥ 3, country code, TIGER prune |
+| `fema.js` | FEMA IPAWS archive | 15 min | NWS-sent messages skipped; local authorities kept |
+| `dispatch.js` | City CAD feeds (`dispatch-feeds.json`) | 10 min | Socrata and ArcGIS adapters; warns after three empty cycles |
+
+Full endpoint details: [data-sources.md](data-sources.md).
+
+## Database schema
+
+### `events` — normalized hazard data (all sources write here)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | TEXT PK | Unique event ID (source-prefixed) |
+| `source` | TEXT | `SOURCE_NAME` |
+| `event` | TEXT | What the source calls it (e.g. `Tornado Warning`, `STRUCTURE FIRE`) |
+| `category` | TEXT | Layer type from `layers.json` — the legend row it toggles |
+| `severity` | TEXT | `Extreme` / `Severe` / `Moderate` / `Minor` / `Low` / `Micro` / `Unknown` |
+| `headline`, `description`, `area_desc` | TEXT | Plain text, unescaped |
+| `color` | TEXT | Hex color for rendering |
+| `source_url` | TEXT | Link to the original |
+| `event_time` | TIMESTAMPTZ | When it happened (or was published, for ongoing incidents) |
+| `expires_at` | TIMESTAMPTZ | When to stop showing |
+| `geom` | GEOMETRY(Geometry, 4326) | Point, LineString or (Multi)Polygon — GiST indexed |
+| `props` | JSONB | Source-specific extras |
+| `state_abbr`, `state_name`, `county`, `city` | TEXT | Reverse geocoded at ingest, lowercase |
+
+### Reference tables
+
+- **`tiger_states` / `tiger_counties` / `tiger_places`** — Census TIGER/Line
+  polygons, loaded on first boot by `scripts/load-tiger.sh`.
+- **`scanners`** — Broadcastify channel IDs by lowercase place name + state
+  (27,302 rows from `data/scanner_lookup.json`); **`state_fips`** for the
+  state-level fallback link.
+- **`source_meta`** — last update time and count per source.
+- **`app_meta`** — keys of migrations that have run.
+
+Schema changes are `CREATE … IF NOT EXISTS` in `schema.sql`; data changes
+are one-shot entries in `migrations.js`.
+
+## Display window and expiry
+
+Each source sets a TTL (`expires_at`); an hourly job deletes expired rows.
+On top of that the API only serves rows whose `event_time` is within
+`DISPLAY_WINDOW_HOURS` (default 72). Ongoing incidents (NIFC fires,
+volcanoes) stamp `event_time` at ingest so they stay visible; damage
+surveys stamp their publish time.
+
+## Frontend
+
+Vanilla JS + Leaflet (vendored under `frontend/vendor/`). On boot it fetches
+`/api/layers`, builds the layer groups, colors, presets and the legend from
+it, then loads `/api/all`. Markers are drawn on a canvas; clustered types
+use Leaflet.markercluster. A legend row can cover several event types (one
+checkbox); status counts are per row for what is on screen. Radar tiles
+come from RainViewer and satellite tiles from Iowa State Mesonet, both
+fetched off the boot path.
+
+## API endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/all` | All active features as GeoJSON FeatureCollection (served from cache) |
-| GET | `/api/health` | Health check (PostgreSQL + Redis status, source list, cache size) |
-| POST | `/api/fetch` | Manual refresh trigger (rate limited: 1/min) |
-
-The `/api/all` response includes:
-- `features[]` — GeoJSON features with scanner URLs pre-resolved
-- `meta.{prefix}` — per-source count and last update time
-- `meta.timeBounds` — `{min, max}` timestamps for the UI time slider
+| GET | `/api/all` | All active features as a GeoJSON FeatureCollection; `meta.{prefix}` per source (count, lastUpdate, refreshMinutes), `meta.timeBounds` |
+| GET | `/api/layers` | The layer registry |
+| GET | `/api/health` | 200 / 503; Postgres state, initial-fetch state, cache size |
+| GET | `/api/location` | Home-base pin (env or IP geolocation) with a scanner link |
+| GET | `/api/weather` | Local conditions and forecast (wttr.in, cached 30 min) |
+| POST | `/api/fetch` | Manual refresh of every source; one per minute for the whole server |
 
 ## Security
 
-- Rate limiting on all `/api/` routes (60 req/min) and `/api/fetch` (1 req/min)
-- XSS sanitization at two layers: backend `sanitize()` on stored data, frontend `esc()` on all popup template literals
-- CORS configurable via `ALLOWED_ORIGINS` environment variable
-- No authentication required (read-only public data)
-- No API keys stored — all data sources are free and keyless
-- PostgreSQL credentials are internal to the Docker network (not exposed to host)
+- Rate limiting on `/api/` (60 req/min per IP) and a single global token per
+  minute on `/api/fetch`, so no client can amplify upstream traffic.
+- Text is escaped once, in the browser. Colors from the API are validated
+  before they reach a style attribute.
+- CORS configurable via `ALLOWED_ORIGINS`.
+- No authentication (read-only public data), no API keys, database
+  credentials internal to the compose network.
+- `/api/location` exposes the configured home coordinates to anyone who can
+  open the map — see the README before exposing an instance publicly.
 
-## Performance
+## Technology choices
 
-- **Spatial indexes** — GiST on event geometry and all TIGER tables for fast reverse geocoding
-- **Scanner JOINs** — direct equality on normalized lowercase columns, no per-row functions
-- **Single query cache rebuild** — one SQL query returns all active events with scanner data
-- **Zoom-based filtering** — at low zoom, minor events hidden to reduce marker count
-- **Canvas renderer** — Leaflet `preferCanvas: true` for better performance with many markers
-- **Zoom bucket rebuild** — map only rebuilds layers when crossing zoom thresholds (4, 6, 8)
-- **Batch inserts** — high-volume sources (FIRMS, GDELT, dispatch) use `storeEvents()` in a single transaction
-- **Target** — <2s map load, <200ms API response, supports 100+ concurrent users
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| Runtime | Node.js 24 + Express 4 | Async I/O, small surface |
+| Database | PostgreSQL 16 + PostGIS 3.4 | Spatial joins for geocoding, geometry storage |
+| Geocoding | Census TIGER/Line | Free, authoritative, offline after first load |
+| Map | Leaflet 1.9 (vendored) | Light, no key, no build step |
+| Tiles | OpenStreetMap | Free |
+| Deployment | Docker Compose | Two containers, one command |
+| Frontend | Vanilla JS + CSS | No build step |

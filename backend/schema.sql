@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS source_meta (
 );
 
 -- Scanner/radio lookup — Broadcastify channel IDs by place name + state
--- Replaces the 511KB frontend scanner_lookup.json (27,302 entries)
+-- Loaded from data/scanner_lookup.json (27,302 entries) on first start
 -- Joined server-side via county/state from TIGER reverse geocoding
 CREATE TABLE IF NOT EXISTS scanners (
     name        TEXT NOT NULL,       -- lowercase place/county name

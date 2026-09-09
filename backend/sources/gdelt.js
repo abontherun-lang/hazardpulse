@@ -6,14 +6,14 @@
  * Rate: No limit on file downloads. We poll every 15 min.
  *
  * Noise reduction: Dropped CAMEO root 17 (Coerce/Threaten),
- * dropped codes 190/193/194/195/182, require NumArticles >= 2.
- * See docs/GDELT_NOISE_REDUCTION.md for rationale.
+ * dropped codes 190/192/193/194/195/182, require NumArticles >= 3.
+ * See docs/gdelt-filtering.md for rationale.
  */
 
 const { http } = require('../http');
 const AdmZip = require('adm-zip');
 const {
-  text, sanitizeUrl, isInUS, TTL, storeEvents, getActiveEvents,
+  text, sanitizeUrl, isInUS, TTL, storeEvents,
   setLastUpdate, deleteWhereNoUSState
 } = require('./common');
 const { colorOf } = require('../layers');
@@ -198,8 +198,4 @@ async function fetch(hoursBack = 0.25) {
   return { total: allEvents.length, stored: normalized.length, pruned };
 }
 
-async function getActive() {
-  return getActiveEvents(SOURCE_NAME);
-}
-
-module.exports = { fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX, parseCsv, getExportUrls };
+module.exports = { fetch, SOURCE_NAME, CRON_SCHEDULE, PREFIX, parseCsv, getExportUrls };
