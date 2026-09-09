@@ -19,59 +19,70 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
-// ===================== LAYER CONFIG =====================
+// ===================== LAYER REGISTRY =====================
+// Groups, legend rows, colors, cluster flags and presets come from
+// /api/layers (backend/layers.json). Nothing about a layer is hardcoded here.
 
-const LAYER_GROUPS = {
-  weather: {
-    label: 'Weather Alerts',
-    types: [
-      'Tornado Warning', 'Tornado Watch', 'Tornado Report',
-      'Severe Thunderstorm Warning', 'Severe Thunderstorm Watch',
-      'Flood Warning', 'Flood Watch',
-      'Special Weather Statement', 'Winter Weather Advisory', 'Wind Advisory'
-    ]
-  },
-  tropical: {
-    label: 'Hurricanes / Tropical',
-    types: [
-      'Hurricane Warning', 'Hurricane Watch',
-      'Tropical Storm Warning', 'Tropical Storm Watch',
-      'Storm Surge Warning', 'Storm Surge Watch'
-    ]
-  },
-  earthquake: {
-    label: 'Earthquakes / Tsunami',
-    types: ['Earthquake', 'Tsunami Warning', 'Tsunami Watch', 'Tsunami Advisory', 'Earthquake Warning']
-  },
-  wildfire: {
-    label: 'Wildfires',
-    types: ['Wildfire', 'Wildfire Incident', 'Red Flag Warning', 'Fire Weather Watch']
-  },
-  volcano: {
-    label: 'Volcanoes',
-    types: ['Volcano']
-  },
-  emergency: {
-    label: 'Emergency Alerts',
-    types: ['Official Alerts', 'Missing Persons']
-  },
-  dispatch: {
-    label: '911 Dispatch',
-    types: ['Dispatch Fire', 'Dispatch Violence', 'Dispatch Accident', 'Dispatch Hazmat']
-  },
-  conflict: {
-    label: 'Conflict & Unrest',
-    types: ['Protest', 'Armed Violence', 'Use of Force']
+let REGISTRY = null;             // raw /api/layers payload
+let LAYER_GROUPS = {};           // key → { label, hint, types }
+let DATA_TYPES = [];             // every type with a legend row
+let LEGEND_ROWS = [];            // { id, group, label, types }
+const TYPE_ROW = {};             // type → legend row id (one checkbox may cover several types)
+const CLUSTERED_TYPES = new Set();
+const WATCH_TYPES = new Set();   // dashed outline, lighter fill
+const TYPE_COLORS = {};
+let PRESETS = {};
+
+function buildRegistry(reg) {
+  REGISTRY = reg;
+  LAYER_GROUPS = {}; DATA_TYPES = []; LEGEND_ROWS = [];
+  for (const g of reg.groups) {
+    const types = [];
+    g.rows.forEach((r, i) => {
+      const id = `${g.key}-${i}`;
+      LEGEND_ROWS.push({ id, group: g.key, label: r.label, types: r.types });
+      for (const t of r.types) { TYPE_ROW[t] = id; types.push(t); }
+    });
+    LAYER_GROUPS[g.key] = { label: g.label, hint: g.hint, types };
+    DATA_TYPES.push(...types);
   }
-};
+  for (const [t, def] of Object.entries(reg.types)) {
+    TYPE_COLORS[t] = def.color;
+    if (def.cluster) CLUSTERED_TYPES.add(t);
+    if (def.style === 'dashed') WATCH_TYPES.add(t);
+  }
+  PRESETS = reg.presets || {};
+}
 
-const DATA_TYPES = Object.values(LAYER_GROUPS).flatMap(g => g.types);
+function swatchHtml(type) {
+  const def = (REGISTRY && REGISTRY.types[type]) || {};
+  const color = safeColor(def.color, '#808080');
+  if (def.style === 'dashed') return `<span class="legend-color legend-dashed" style="border-color:${color};"></span>`;
+  if (def.style === 'dot') return `<span class="legend-color" style="background:${color};border-radius:50%;"></span>`;
+  const border = def.border ? `border:2px solid ${safeColor(def.border)};` : '';
+  return `<span class="legend-color" style="background:${color};${border}"></span>`;
+}
 
-const CLUSTERED_TYPES = new Set([
-  'Earthquake', 'Wildfire', 'Wildfire Incident', 'Tornado Report',
-  'Protest', 'Armed Violence', 'Use of Force',
-  'Dispatch Fire', 'Dispatch Violence', 'Dispatch Accident', 'Dispatch Hazmat'
-]);
+// Legend panel markup, one section per group, one checkbox per row.
+function renderLegend() {
+  const host = document.getElementById('legend-groups');
+  if (!host || !REGISTRY) return;
+  host.innerHTML = REGISTRY.groups.map(g => {
+    const rows = LEGEND_ROWS.filter(r => r.group === g.key).map(r =>
+      `<label class="legend-item"><input type="checkbox" checked data-row="${r.id}" onchange="toggleRow('${r.id}')">${swatchHtml(r.types[0])}${esc(r.label)}</label>`
+    ).join('');
+    const hint = g.hint ? `<div class="legend-hint">${esc(g.hint)}</div>` : '';
+    return `<div class="legend-section">
+      <div class="legend-group-header" onclick="toggleCollapse('${g.key}')">
+        <input type="checkbox" checked data-group="${g.key}" onclick="event.stopPropagation(); toggleGroup('${g.key}')">
+        <span class="collapse-arrow" data-group="${g.key}">&#9660;</span>
+        <span class="group-label">${esc(g.label)}</span>
+        <span class="group-count" data-count="${g.key}"></span>
+      </div>
+      <div class="legend-body" data-group="${g.key}">${rows}${hint}</div>
+    </div>`;
+  }).join('');
+}
 
 const CLUSTER_OPTIONS = {
   maxClusterRadius: 40,
@@ -88,48 +99,6 @@ const CLUSTER_OPTIONS = {
   }
 };
 
-const WATCH_TYPES = new Set([
-  'Tornado Watch', 'Severe Thunderstorm Watch', 'Flood Watch',
-  'Hurricane Watch', 'Tropical Storm Watch', 'Storm Surge Watch',
-  'Tsunami Watch', 'Tsunami Advisory', 'Fire Weather Watch',
-  'Special Weather Statement', 'Winter Weather Advisory', 'Wind Advisory'
-]);
-
-// ===================== COLOR MAPS =====================
-
-const ALERT_COLORS = {
-  'Tornado Warning': '#0D47A1', 'Tornado Watch': '#1565C0',
-  'Severe Thunderstorm Warning': '#1976D2', 'Severe Thunderstorm Watch': '#42A5F5',
-  'Special Weather Statement': '#546E7A', 'Winter Weather Advisory': '#78909C', 'Wind Advisory': '#607D8B',
-  'Flood Warning': '#1A237E', 'Flood Watch': '#3949AB',
-  'Red Flag Warning': '#E65100', 'Fire Weather Watch': '#FF8F00',
-  'Hurricane Warning': '#006064', 'Hurricane Watch': '#00838F',
-  'Tropical Storm Warning': '#0097A7', 'Tropical Storm Watch': '#26C6DA',
-  'Storm Surge Warning': '#004D40', 'Storm Surge Watch': '#00897B',
-  'Tsunami Warning': '#01579B', 'Tsunami Watch': '#0277BD', 'Tsunami Advisory': '#0288D1',
-  'Earthquake Warning': '#795548'
-};
-
-const GDELT_COLORS = {
-  'Protest': '#F9A825',
-  'Armed Violence': '#B71C1C',
-  'Use of Force': '#C62828'
-};
-
-const DISPATCH_COLORS = {
-  'Dispatch Fire': '#FF6D00',
-  'Dispatch Violence': '#D500F9',
-  'Dispatch Accident': '#FFAB00',
-  'Dispatch Hazmat': '#00E676'
-};
-
-// Merged color map for status panel dots
-const TYPE_COLORS = { ...ALERT_COLORS, ...GDELT_COLORS, ...DISPATCH_COLORS,
-  'Tornado Report': '#0D47A1', 'Earthquake': '#6D4C41', 'Earthquake Warning': '#5D4037',
-  'Wildfire': '#FF8F00', 'Wildfire Incident': '#D84315', 'Volcano': '#E65100',
-  'Official Alerts': '#D50000', 'Missing Persons': '#FF6F00'
-};
-
 // ===================== LAYER STATE =====================
 
 const layerGroups = {};
@@ -144,8 +113,6 @@ function getLayerGroup(type) {
   return layerGroups[type];
 }
 
-DATA_TYPES.forEach(type => getLayerGroup(type));
-
 // ===================== DOM CACHE =====================
 
 const domCache = {};
@@ -153,7 +120,8 @@ function getEl(sel) {
   if (!domCache[sel]) domCache[sel] = document.querySelector(sel);
   return domCache[sel];
 }
-function getCheckbox(type) { return getEl(`input[data-type="${type}"]`); }
+function getRowCheckbox(rowId) { return getEl(`input[data-row="${rowId}"]`); }
+function getCheckbox(type) { const id = TYPE_ROW[type]; return id ? getRowCheckbox(id) : null; }
 function getGroupCheckbox(key) { return getEl(`input[data-group="${key}"]`); }
 function getSatCheckbox(id) { return getEl(`input[data-sat="${id}"]`); }
 
@@ -266,8 +234,10 @@ function syncLayerVisibility() {
   });
 }
 
-function toggleType() {
+function toggleRow(rowId) {
+  const row = LEGEND_ROWS.find(r => r.id === rowId);
   syncLayerVisibility();
+  if (row) updateGroupCheckbox(row.group);
   notifyStatusDirty();
 }
 
@@ -419,11 +389,11 @@ function severityOpacity(severity) {
 
 function buildWeatherMarker(feature) {
   const props = feature.properties;
-  const eventType = props.event;
+  const eventType = props.category || props.event;
   const group = layerGroups[eventType];
   if (!group || !feature.geometry) return;
 
-  const color = props.color || ALERT_COLORS[eventType] || '#808080';
+  const color = props.color || TYPE_COLORS[eventType] || '#808080';
   const watch = WATCH_TYPES.has(eventType);
   let layer;
 
@@ -450,7 +420,7 @@ function buildGdeltMarker(feature) {
   const group = layerGroups[props.category];
   if (!group || !feature.geometry) return;
 
-  const color = props.color || GDELT_COLORS[props.category] || '#808080';
+  const color = props.color || TYPE_COLORS[props.category] || '#808080';
   const c = feature.geometry.coordinates;
   const opacity = severityOpacity(props.severity);
   const size = props.severity === 'Extreme' ? 10 : props.severity === 'Severe' ? 8 : 6;
@@ -561,7 +531,7 @@ function buildDispatchMarker(feature) {
   const group = layerGroups[props.category];
   if (!group || !feature.geometry) return;
 
-  const color = props.color || DISPATCH_COLORS[props.category] || '#546E7A';
+  const color = props.color || TYPE_COLORS[props.category] || '#546E7A';
   const c = feature.geometry.coordinates;
   const opacity = severityOpacity(props.severity);
   const size = props.severity === 'Extreme' ? 9 : 7;
@@ -809,19 +779,20 @@ function _renderStatusList(counts) {
   const search = (document.getElementById('status-search').value || '').toLowerCase();
   let html = '';
 
-  for (const [, group] of Object.entries(LAYER_GROUPS)) {
-    const rows = group.types
-      .filter(t => t.toLowerCase().includes(search))
-      .map(t => {
-        const c = counts[t] || 0;
-        const color = TYPE_COLORS[t] || '#888';
+  for (const [key, group] of Object.entries(LAYER_GROUPS)) {
+    const rows = LEGEND_ROWS
+      .filter(r => r.group === key)
+      .filter(r => r.label.toLowerCase().includes(search) || r.types.some(t => t.toLowerCase().includes(search)))
+      .map(r => {
+        const c = r.types.reduce((sum, t) => sum + (counts[t] || 0), 0);
+        const color = safeColor(TYPE_COLORS[r.types[0]], '#888');
         return `<div class="status-row">
-          <span class="status-row-label"><span class="status-row-dot" style="background:${color}"></span>${t}</span>
+          <span class="status-row-label"><span class="status-row-dot" style="background:${color}"></span>${esc(r.label)}</span>
           <span class="status-row-count${c === 0 ? ' zero' : ''}">${c}</span>
         </div>`;
       });
     if (!rows.length) continue;
-    html += `<div class="status-group-header">${group.label}</div>${rows.join('')}`;
+    html += `<div class="status-group-header">${esc(group.label)}</div>${rows.join('')}`;
   }
 
   // Source freshness — stale means older than twice the source's own
@@ -878,28 +849,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===================== PRESETS =====================
 
 function applyPreset(preset) {
-  const presets = {
-    all:      { weather: true, tropical: true, earthquake: true, wildfire: true, volcano: true, emergency: true, dispatch: true, conflict: true },
-    weather:  { weather: true, tropical: true, earthquake: false, wildfire: false, volcano: false, emergency: false, dispatch: false, conflict: false },
-    seismic:  { weather: false, tropical: false, earthquake: true, wildfire: false, volcano: true, emergency: false, dispatch: false, conflict: false },
-    fire:     { weather: false, tropical: false, earthquake: false, wildfire: true, volcano: false, emergency: false, dispatch: false, conflict: false },
-    conflict: { weather: false, tropical: false, earthquake: false, wildfire: false, volcano: false, emergency: true, dispatch: true, conflict: true },
-  };
+  const config = PRESETS[preset];
+  if (!config) return;
 
-  if (preset === 'critical') {
+  if (config.types) {
+    // A type list: only those rows on.
     DATA_TYPES.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = false; });
-    ['Tornado Warning', 'Tornado Report', 'Hurricane Warning', 'Storm Surge Warning', 'Tsunami Warning',
-     'Earthquake', 'Official Alerts', 'Missing Persons', 'Armed Violence',
-     'Wildfire', 'Wildfire Incident', 'Volcano', 'Red Flag Warning', 'Dispatch Fire', 'Dispatch Violence', 'Dispatch Hazmat'
-    ].forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = true; });
+    config.types.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = true; });
   } else {
-    const config = presets[preset];
-    if (!config) return;
+    // A group list ("*" = every group): whole groups on or off.
+    const on = new Set(config.groups === '*' ? Object.keys(LAYER_GROUPS) : config.groups);
     Object.entries(LAYER_GROUPS).forEach(([key, group]) => {
-      const on = config[key];
-      group.types.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = on; });
+      group.types.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = on.has(key); });
       const gcb = getGroupCheckbox(key);
-      if (gcb) gcb.checked = on;
+      if (gcb) gcb.checked = on.has(key);
     });
   }
 
@@ -907,7 +870,7 @@ function applyPreset(preset) {
   syncLayerVisibility();
   notifyStatusDirty();
 
-  const satOn = preset === 'all';
+  const satOn = Boolean(config.satellite);
   ['sat-ir', 'sat-vis', 'sat-wv', 'radar'].forEach(id => {
     const cb = getSatCheckbox(id);
     if (cb) cb.checked = satOn;
@@ -1037,12 +1000,23 @@ async function loadHomePin() {
 
 // ===================== BOOT =====================
 
+async function loadRegistry() {
+  const res = await fetch(`${API_URL}/layers`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} loading /api/layers`);
+  buildRegistry(await res.json());
+  renderLegend();
+  DATA_TYPES.forEach(type => getLayerGroup(type));
+}
+
 setInterval(loadAll, 5 * 60 * 1000);
 
-loadRadarLayer().then(() => {
-  syncLayerVisibility();
-  syncSatelliteVisibility();
-  loadAll();
-  loadHomePin();
-  loadWeather();
-});
+loadRegistry()
+  .then(loadRadarLayer)
+  .then(() => {
+    syncLayerVisibility();
+    syncSatelliteVisibility();
+    loadAll();
+    loadHomePin();
+    loadWeather();
+  })
+  .catch(e => console.error('Boot failed:', e));

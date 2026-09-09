@@ -9,10 +9,8 @@ WORKDIR /app
 COPY backend/package.json backend/package-lock.json* ./backend/
 RUN cd backend && npm ci --omit=dev
 
-# Copy source
-COPY backend/server.js backend/redis-client.js backend/db.js backend/schema.sql backend/ugc_centroids.json ./backend/
-COPY backend/sources/ ./backend/sources/
-COPY backend/scripts/ ./backend/scripts/
+# Copy source (.dockerignore keeps node_modules, tests and .env out)
+COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
 # Startup script — launches Redis then Node

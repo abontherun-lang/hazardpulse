@@ -254,7 +254,7 @@ hazardpulse/
 1. Create `backend/sources/yoursource.js` (copy `usgs.js` as a template)
 2. Export `{ fetch, getActive, SOURCE_NAME, CRON_SCHEDULE, PREFIX }`
 3. Add `require('./sources/yoursource')` to the `SOURCES` array in `server.js`
-4. Add the layer checkbox to `frontend/index.html` and layer group to `frontend/app.js`
+4. Register the new `category` in `backend/layers.json` (color, style, legend row) — the legend, status list and presets are generated from it
 
 Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. Keep parsing logic pure and add a test in `backend/test/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
