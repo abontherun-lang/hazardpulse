@@ -6,42 +6,49 @@
       "hint": null,
       "rows": [
         {
+          "id": "tornado-warning",
           "label": "Tornado Warning",
           "types": [
             "Tornado Warning"
           ]
         },
         {
+          "id": "tornado-watch",
           "label": "Tornado Watch",
           "types": [
             "Tornado Watch"
           ]
         },
         {
+          "id": "tornado-reports",
           "label": "Tornado Reports (SPC, preliminary)",
           "types": [
             "Tornado Report"
           ]
         },
         {
+          "id": "tornado-damage-surveys",
           "label": "Tornado Damage Surveys (NWS)",
           "types": [
             "Tornado Damage Survey"
           ]
         },
         {
+          "id": "thunderstorm-warning",
           "label": "Thunderstorm Warning",
           "types": [
             "Severe Thunderstorm Warning"
           ]
         },
         {
+          "id": "thunderstorm-watch",
           "label": "Thunderstorm Watch",
           "types": [
             "Severe Thunderstorm Watch"
           ]
         },
         {
+          "id": "flood-warning",
           "label": "Flood Warning",
           "types": [
             "Flood Warning",
@@ -50,26 +57,36 @@
           ]
         },
         {
+          "id": "flash-flood-warning",
           "label": "Flash Flood Warning",
           "types": [
             "Flash Flood Warning"
           ]
         },
         {
+          "id": "flood-watch",
           "label": "Flood Watch",
           "types": [
             "Flood Watch"
           ]
         },
         {
-          "label": "Extreme Heat",
+          "id": "extreme-heat-warning",
+          "label": "Extreme Heat Warning",
           "types": [
-            "Extreme Heat Warning",
+            "Extreme Heat Warning"
+          ]
+        },
+        {
+          "id": "heat-watch-advisory",
+          "label": "Heat Watch / Advisory",
+          "types": [
             "Extreme Heat Watch",
             "Heat Advisory"
           ]
         },
         {
+          "id": "extreme-cold",
           "label": "Extreme Cold",
           "types": [
             "Extreme Cold Warning",
@@ -79,12 +96,14 @@
           ]
         },
         {
+          "id": "special-weather",
           "label": "Special Weather",
           "types": [
             "Special Weather Statement"
           ]
         },
         {
+          "id": "winter-storms",
           "label": "Winter Storms",
           "types": [
             "Blizzard Warning",
@@ -98,15 +117,23 @@
           ]
         },
         {
-          "label": "High Wind",
+          "id": "extreme-wind-warning",
+          "label": "Extreme Wind Warning",
           "types": [
-            "Extreme Wind Warning",
+            "Extreme Wind Warning"
+          ]
+        },
+        {
+          "id": "high-wind",
+          "label": "High Wind / Dust Storm",
+          "types": [
             "High Wind Warning",
             "Dust Storm Warning",
             "Wind Advisory"
           ]
         },
         {
+          "id": "other-nws-alerts",
           "label": "Other NWS Alerts",
           "types": [
             "Other NWS Alert"
@@ -120,6 +147,7 @@
       "hint": "Active during hurricane season (Jun-Nov)",
       "rows": [
         {
+          "id": "hurricane-warning",
           "label": "Hurricane Warning",
           "types": [
             "Hurricane Warning",
@@ -127,6 +155,7 @@
           ]
         },
         {
+          "id": "hurricane-watch",
           "label": "Hurricane Watch",
           "types": [
             "Hurricane Watch",
@@ -134,30 +163,35 @@
           ]
         },
         {
+          "id": "tropical-storm-warning",
           "label": "Tropical Storm Warning",
           "types": [
             "Tropical Storm Warning"
           ]
         },
         {
+          "id": "tropical-storm-watch",
           "label": "Tropical Storm Watch",
           "types": [
             "Tropical Storm Watch"
           ]
         },
         {
+          "id": "storm-surge-warning",
           "label": "Storm Surge Warning",
           "types": [
             "Storm Surge Warning"
           ]
         },
         {
+          "id": "storm-surge-watch",
           "label": "Storm Surge Watch",
           "types": [
             "Storm Surge Watch"
           ]
         },
         {
+          "id": "tropical-local-statements",
           "label": "Local Statements",
           "types": [
             "Hurricane Local Statement",
@@ -172,30 +206,35 @@
       "hint": "Size = magnitude. Zoom in for smaller quakes.",
       "rows": [
         {
+          "id": "earthquakes",
           "label": "Earthquakes (USGS)",
           "types": [
             "Earthquake"
           ]
         },
         {
+          "id": "earthquake-warning",
           "label": "Earthquake Warning",
           "types": [
             "Earthquake Warning"
           ]
         },
         {
+          "id": "tsunami-warning",
           "label": "Tsunami Warning",
           "types": [
             "Tsunami Warning"
           ]
         },
         {
+          "id": "tsunami-watch",
           "label": "Tsunami Watch",
           "types": [
             "Tsunami Watch"
           ]
         },
         {
+          "id": "tsunami-advisory",
           "label": "Tsunami Advisory",
           "types": [
             "Tsunami Advisory"
@@ -209,30 +248,35 @@
       "hint": "Satellite hits filtered to high-intensity or NIFC-confirmed fires. Named fires sized by acreage.",
       "rows": [
         {
+          "id": "active-fires",
           "label": "Active Fires (NASA)",
           "types": [
             "Wildfire"
           ]
         },
         {
+          "id": "named-fires",
           "label": "Named Fires (NIFC)",
           "types": [
             "Wildfire Incident"
           ]
         },
         {
+          "id": "red-flag-warning",
           "label": "Red Flag Warning",
           "types": [
             "Red Flag Warning"
           ]
         },
         {
+          "id": "fire-warning",
           "label": "Fire Warning (NWS)",
           "types": [
             "Fire Warning"
           ]
         },
         {
+          "id": "fire-weather-watch",
           "label": "Fire Weather Watch",
           "types": [
             "Fire Weather Watch"
@@ -246,15 +290,23 @@
       "hint": "US volcanoes above normal. Color = aviation code (yellow/orange/red).",
       "rows": [
         {
+          "id": "volcano-elevated",
           "label": "Elevated Alert (USGS)",
           "types": [
             "Volcano"
           ]
         },
         {
-          "label": "Volcano / Ashfall (NWS)",
+          "id": "volcano-warning",
+          "label": "Volcano Warning (NWS)",
           "types": [
-            "Volcano Warning",
+            "Volcano Warning"
+          ]
+        },
+        {
+          "id": "ashfall",
+          "label": "Ashfall (NWS)",
+          "types": [
             "Ashfall Warning",
             "Ashfall Advisory"
           ]
@@ -267,12 +319,14 @@
       "hint": "FEMA IPAWS local authorities, plus civil messages relayed by the NWS",
       "rows": [
         {
+          "id": "official-alerts",
           "label": "Evacuations / Law Enforcement",
           "types": [
             "Official Alerts"
           ]
         },
         {
+          "id": "missing-persons",
           "label": "Missing Persons / AMBER",
           "types": [
             "Missing Persons",
@@ -280,6 +334,7 @@
           ]
         },
         {
+          "id": "civil-evacuation",
           "label": "Civil / Evacuation (NWS)",
           "types": [
             "Evacuation Immediate",
@@ -303,24 +358,28 @@
       "hint": null,
       "rows": [
         {
+          "id": "dispatch-fire",
           "label": "Structure Fires",
           "types": [
             "Dispatch Fire"
           ]
         },
         {
+          "id": "dispatch-violence",
           "label": "Violent Crimes",
           "types": [
             "Dispatch Violence"
           ]
         },
         {
+          "id": "dispatch-accident",
           "label": "Major Accidents",
           "types": [
             "Dispatch Accident"
           ]
         },
         {
+          "id": "dispatch-hazmat",
           "label": "Hazmat",
           "types": [
             "Dispatch Hazmat"
@@ -334,18 +393,21 @@
       "hint": "GDELT — news-derived, multi-source confirmed",
       "rows": [
         {
+          "id": "protests",
           "label": "Protests / Demonstrations",
           "types": [
             "Protest"
           ]
         },
         {
+          "id": "armed-violence",
           "label": "Shootings / Explosions",
           "types": [
             "Armed Violence"
           ]
         },
         {
+          "id": "use-of-force",
           "label": "Use of Force",
           "types": [
             "Use of Force"
@@ -706,37 +768,30 @@
       ]
     },
     "critical": {
-      "types": [
-        "Tornado Warning",
-        "Tornado Report",
-        "Tornado Damage Survey",
-        "Hurricane Warning",
-        "Storm Surge Warning",
-        "Tsunami Warning",
-        "Earthquake",
-        "Official Alerts",
-        "Missing Persons",
-        "Armed Violence",
-        "Wildfire",
-        "Wildfire Incident",
-        "Volcano",
-        "Red Flag Warning",
-        "Dispatch Fire",
-        "Dispatch Violence",
-        "Dispatch Hazmat",
-        "Flash Flood Warning",
-        "Extreme Heat Warning",
-        "Extreme Wind Warning",
-        "Fire Warning",
-        "Volcano Warning",
-        "Child Abduction Emergency",
-        "Evacuation Immediate",
-        "Civil Danger Warning",
-        "Civil Emergency Message",
-        "Shelter In Place Warning",
-        "Hazardous Materials Warning",
-        "Law Enforcement Warning",
-        "Local Area Emergency"
+      "rows": [
+        "tornado-warning",
+        "tornado-reports",
+        "tornado-damage-surveys",
+        "flash-flood-warning",
+        "extreme-heat-warning",
+        "extreme-wind-warning",
+        "hurricane-warning",
+        "storm-surge-warning",
+        "tsunami-warning",
+        "earthquakes",
+        "active-fires",
+        "named-fires",
+        "red-flag-warning",
+        "fire-warning",
+        "volcano-elevated",
+        "volcano-warning",
+        "official-alerts",
+        "missing-persons",
+        "civil-evacuation",
+        "dispatch-fire",
+        "dispatch-violence",
+        "dispatch-hazmat",
+        "armed-violence"
       ]
     }
   }

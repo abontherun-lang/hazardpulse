@@ -84,7 +84,9 @@ This is the most common contribution. Each source is a single file in `backend/s
    ```
 
 5. **Register the layer** — add the new `category` value to `backend/layers.json`:
-   a `types` entry (color, style, cluster) and a row in the right group. That
+   a `types` entry (color, style, cluster) and a row (unique kebab-case `id`,
+   label, types) in the right group. Presets list row ids, so a new row that
+   belongs in a quick view goes into that preset's `rows` too. That
    one file drives the backend colors (`colorOf()` in `backend/layers.js`),
    the generated legend, the status list, and the presets. `npm test`
    checks the registry for consistency; a `buildXMarker` function in

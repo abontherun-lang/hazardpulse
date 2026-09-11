@@ -29,6 +29,17 @@ test('every legend row type is registered, and each type has exactly one row', (
   assert.equal(legendTypes().length, Object.keys(TYPES).length);
 });
 
+test('every legend row has a unique kebab-case id', () => {
+  const seen = new Set();
+  for (const g of registry.groups) {
+    for (const r of g.rows) {
+      assert.match(r.id || '', /^[a-z0-9]+(-[a-z0-9]+)*$/, `${g.key}: row "${r.label}" id ${JSON.stringify(r.id)}`);
+      assert.ok(!seen.has(r.id), `row id "${r.id}" is used twice`);
+      seen.add(r.id);
+    }
+  }
+});
+
 test('every type has a hex color and a known style', () => {
   for (const [t, def] of Object.entries(TYPES)) {
     assert.match(def.color, /^#[0-9A-Fa-f]{6}$/, `${t} color`);
@@ -46,10 +57,14 @@ test('the alert policy fallback row exists', () => {
   assert.ok(has(FALLBACK_TYPE));
 });
 
-test('presets reference real groups and types', () => {
+test('presets reference real groups and rows, never types', () => {
   const groups = new Set(registry.groups.map(g => g.key));
+  const rows = new Set(registry.groups.flatMap(g => g.rows.map(r => r.id)));
   for (const [name, p] of Object.entries(registry.presets)) {
-    if (p.types) for (const t of p.types) assert.ok(has(t), `preset ${name}: type "${t}"`);
+    // The legend checkbox is the row, so a preset keyed on types would turn on
+    // every row-mate of each type it names.
+    assert.equal(p.types, undefined, `preset ${name}: use "rows", not "types"`);
+    if (p.rows) for (const r of p.rows) assert.ok(rows.has(r), `preset ${name}: row "${r}"`);
     else if (p.groups !== '*') for (const g of p.groups) assert.ok(groups.has(g), `preset ${name}: group "${g}"`);
     else assert.equal(p.groups, '*');
   }

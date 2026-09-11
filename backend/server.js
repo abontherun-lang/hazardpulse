@@ -333,8 +333,10 @@ async function start() {
       console.log(`   Sources: ${SOURCES.map(s => s.SOURCE_NAME).join(', ')}`);
     });
 
-    // Non-blocking — don't fail startup if it errors
-    await resolveServerLocation();
+    // Fire-and-forget: only the forecast and /api/location read it, and it
+    // swallows its own errors. Awaiting it held the initial fetch behind an
+    // ip-api call (5 s timeout) plus a PostGIS scanner lookup.
+    resolveServerLocation();
 
     // Initial fetch — all sources in parallel
     console.log('\n📡 Initial fetch...');
