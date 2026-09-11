@@ -49,7 +49,7 @@ These are currently integrated and running in production. All sources write to a
 - **Update**: Hourly
 - **Expiry**: 6 hours
 - **Props**: `acres`, `contained`, `cause` (stored in JSONB)
-- **Notes**: Filtered to `IncidentTypeCategory='WF'` (prescribed burns excluded), not declared out, and either uncontained or discovered within 21 days. Rendered as the **Wildfire Incident** type (sized by acreage) and exported via `getActiveFirePoints()` to corroborate NASA FIRMS. Uses batch `storeEvents()`.
+- **Notes**: Filtered to `IncidentTypeCategory='WF'` (prescribed burns excluded), not declared out, and either uncontained or discovered within 21 days. Rendered as the **Wildfire Incident** type (sized by acreage) and read back by FIRMS through `getActivePoints('NIFC')` (`common.js`) to corroborate NASA hotspots. Uses batch `storeEvents()`.
 
 ### NWS SPC Storm Reports
 - **Data**: Preliminary tornado reports — Local Storm Reports from spotters, chasers and offices
@@ -78,7 +78,7 @@ These are currently integrated and running in production. All sources write to a
 - **Update**: Hourly
 - **Expiry**: 2 hours
 - **Props**: `alertLevel`, `colorCode`, `observatory` (stored in JSONB)
-- **Notes**: One call returns all US volcanoes with coordinates + current alert. Rendered as the **Volcano** type (color = aviation code) and exported via `getElevatedPoints()` so FIRMS attributes volcanic thermal anomalies here instead of mislabeling them as wildfires. Covers Alaska (not in the FIRMS feed) as a bonus.
+- **Notes**: One call returns all US volcanoes with coordinates + current alert. Rendered as the **Volcano** type (color = aviation code) and read back by FIRMS through `getActivePoints('USGS Volcano')` (`common.js`) so volcanic thermal anomalies are attributed here instead of mislabeled as wildfires. Covers Alaska (not in the FIRMS feed) as a bonus.
 
 ### GDELT Project
 - **Data**: News-derived conflict and unrest events (protests, armed violence, use of force)

@@ -175,7 +175,8 @@ Vanilla JS + Leaflet (vendored under `frontend/vendor/`). On boot it fetches
 `/api/layers`, builds the layer groups, colors, presets and the legend from
 it, then loads `/api/all`. Markers are drawn on a canvas; clustered types
 use Leaflet.markercluster. A legend row can cover several event types (one
-checkbox); status counts are per row for what is on screen. Radar tiles
+checkbox), so presets are lists of row ids or of whole groups; status counts
+are per row for what is on screen. Radar tiles
 come from RainViewer and satellite tiles from Iowa State Mesonet, both
 fetched off the boot path.
 
