@@ -1,7 +1,6 @@
 /**
  * PostgreSQL/PostGIS connection module.
  *
- * Mirrors the pattern of redis-client.js:
  *   const { pool, connect } = require('./db');
  */
 
