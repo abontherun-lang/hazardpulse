@@ -28,6 +28,7 @@ let LAYER_GROUPS = {};           // key → { label, hint, types }
 let DATA_TYPES = [];             // every type with a legend row
 let LEGEND_ROWS = [];            // { id, group, label, types }
 const TYPE_ROW = {};             // type → legend row id (one checkbox may cover several types)
+const ROW_IDS = new Set();       // every legend row id, for presets
 const CLUSTERED_TYPES = new Set();
 const WATCH_TYPES = new Set();   // dashed outline, lighter fill
 const TYPE_COLORS = {};
@@ -35,14 +36,15 @@ let PRESETS = {};
 
 function buildRegistry(reg) {
   REGISTRY = reg;
-  LAYER_GROUPS = {}; DATA_TYPES = []; LEGEND_ROWS = [];
+  LAYER_GROUPS = {}; DATA_TYPES = []; LEGEND_ROWS = []; ROW_IDS.clear();
   for (const g of reg.groups) {
     const types = [];
-    g.rows.forEach((r, i) => {
-      const id = `${g.key}-${i}`;
+    for (const r of g.rows) {
+      const id = r.id;
       LEGEND_ROWS.push({ id, group: g.key, label: r.label, types: r.types });
+      ROW_IDS.add(id);
       for (const t of r.types) { TYPE_ROW[t] = id; types.push(t); }
-    });
+    }
     LAYER_GROUPS[g.key] = { label: g.label, hint: g.hint, types };
     DATA_TYPES.push(...types);
   }
@@ -888,10 +890,11 @@ function applyPreset(preset) {
   const config = PRESETS[preset];
   if (!config) return;
 
-  if (config.types) {
-    // A type list: only those rows on.
-    DATA_TYPES.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = false; });
-    config.types.forEach(type => { const cb = getCheckbox(type); if (cb) cb.checked = true; });
+  if (config.rows) {
+    // A row list: exactly those legend rows on. The checkbox is the row, so a
+    // preset names rows; a type list would drag in every row-mate of a type.
+    const on = new Set(config.rows);
+    ROW_IDS.forEach(id => { const cb = getRowCheckbox(id); if (cb) cb.checked = on.has(id); });
   } else {
     // A group list ("*" = every group): whole groups on or off.
     const on = new Set(config.groups === '*' ? Object.keys(LAYER_GROUPS) : config.groups);
