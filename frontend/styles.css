@@ -780,3 +780,48 @@ body {
   0%, 100% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.3); }
   50% { box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), 0 0 30px rgba(255, 255, 255, 0.5); }
 }
+
+/* ===================== NHC STORMS ===================== */
+
+.storm-icon { background: none; border: none; }
+
+.storm-glyph {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 8px currentColor);
+}
+.storm-glyph svg { display: block; }
+.storm-arm { fill: currentColor; stroke: #1a1a2e; stroke-width: 1; }
+.storm-eye { fill: #ffffff; stroke: currentColor; stroke-width: 3; }
+.storm-eye-filled { fill: currentColor; stroke: #ffffff; }
+
+.storm-spin { animation: storm-spin 5s linear infinite; }
+@keyframes storm-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+@media (prefers-reduced-motion: reduce) { .storm-spin { animation: none; } }
+
+.storm-tag {
+  margin: 2px auto 0;
+  width: max-content;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #1a1a2e;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+}
+
+.storm-tooltip {
+  background: rgba(26, 26, 46, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #e8e8f0 !important;
+  font-size: 0.7rem;
+  padding: 1px 5px !important;
+  box-shadow: none !important;
+}
+.storm-tooltip::before { display: none; }

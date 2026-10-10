@@ -70,6 +70,16 @@ These are currently integrated and running in production. All sources write to a
 - **Props**: `rating`, `efnum`, `stormDate`, `lengthMi`, `widthYd`, `injuries`, `fatalities`, `maxWindMph`, `wfo`
 - **Notes**: The service holds every survey since 2010 and offices re-edit old ones, so the query asks for tracks edited in the last 14 days and `dat.js` keeps only those whose storm date is also recent. `event_time` is the edit time so a newly rated tornado shows inside the display window. Rendered as the **Tornado Damage Survey** type: a line whose weight grows with the EF number.
 
+### National Hurricane Center (NHC)
+- **Data**: Active tropical cyclones — the storm center with Saffir-Simpson category, the 5-day forecast track, forecast points and cone, and the advisory wind field (34 / 50 / 64 kt rings)
+- **Endpoint**: index `https://www.nhc.noaa.gov/CurrentStorms.json`; products from the `NHC_tropical_weather` ArcGIS MapServer at `mapservices.weather.noaa.gov`, layers `<bin> Forecast Points / Forecast Track / Forecast Cone / Advisory Wind Field` (`f=geojson`)
+- **Format**: JSON index; GeoJSON Point / LineString / Polygon per product
+- **Auth**: None
+- **Update**: Every 15 minutes
+- **Expiry**: 9 hours (full advisories come every 6 h; a dissipated storm expires on its own)
+- **Props**: `product` (`center` / `cone` / `track` / `point` / `wind`), `stormId`, `stormName`, `advisory`, `status`, `tag`, `category_ss`, `windKt`, `windMph`, `gustMph`, `pressureMb`, `moveDir`, `moveMph`, `tau`, `label`, `letter`, `radii`, `radiiMph`, `quadrantsNm`, `graphicsUrl`
+- **Notes**: The NWS alert feed carries the hurricane / tropical storm / surge *warnings* as county fills; this source carries the *storm*. Bins (AT1–AT5, EP1–EP5, CP1–CP5) are reused and keep the last storm's products after it dissipates, so every product is checked against the storm id from the index. The GIS products update on full advisories only; the index also updates on intermediate advisories, so the center can be ahead of the cone. Ids are stable per storm and product so each advisory replaces the previous one. Coordinates are rounded to 4 decimals (~50 KB per storm on `/api/all`). Rendered as three types in the tropical group: **Tropical Cyclone** (rotating glyph colored by category, tag `H1`…`H5` / `TS` / `TD`), **Tropical Cyclone Forecast** (cone + dotted track + labeled points) and **Tropical Cyclone Wind Field** (nested rings), with the cone and rings in a pane under the NWS fills.
+
 ### USGS Volcano Hazards Program
 - **Data**: US volcanoes at elevated alert (above NORMAL/GREEN) with alert level + aviation color code
 - **Endpoint**: `https://volcanoes.usgs.gov/vsc/api/volcanoApi/geojson`
