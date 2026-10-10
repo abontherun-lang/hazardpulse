@@ -19,12 +19,12 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
-// NHC storm products get their own panes so the stacking order is fixed:
-// cone + wind field under the NWS warning fills (overlayPane is 400), the
-// forecast track above them, the center glyph above every marker (600)
-// but under tooltips (650).
-map.createPane('stormArea').style.zIndex = 390;
-map.createPane('stormTrack').style.zIndex = 450;
+// The NHC storm center glyph sits above every marker (600) but under
+// tooltips (650). Storm vectors stay on the default canvas renderer and are
+// ordered with bringToBack / bringToFront: with preferCanvas, a vector pane
+// of its own would be a second full-viewport canvas, and only the topmost
+// canvas receives mouse events — every NWS polygon under it stops
+// responding to clicks.
 map.createPane('stormCenter').style.zIndex = 640;
 
 // ===================== LAYER REGISTRY =====================
@@ -641,30 +641,47 @@ function buildStormFeature(feature, zoom) {
   const color = safeColor(props.color, TYPE_COLORS[props.category] || '#808080');
   let layer;
 
+  // Stacking inside the shared canvas: cone and wind rings go under the NWS
+  // warning fills, the track and its points on top of them. Only layers
+  // already on the map have a renderer to reorder; a hidden row's layers
+  // simply land in add order when the row is switched on.
+  const toBack = l => l.eachLayer ? l.eachLayer(toBack) : (l._map && l.bringToBack());
+  const toFront = l => l.eachLayer ? l.eachLayer(toFront) : (l._map && l.bringToFront());
+
   switch (props.product) {
     case 'cone':
-      layer = L.geoJSON(feature, { pane: 'stormArea', style: { color, weight: 1.5, opacity: 0.8, fillColor: color, fillOpacity: 0.12 } });
-      break;
+      layer = L.geoJSON(feature, { style: { color, weight: 1.5, opacity: 0.8, fillColor: color, fillOpacity: 0.12 } });
+      layer.bindPopup(createStormPopup(props), { maxWidth: 350, maxHeight: 400 });
+      layer.addTo(group);
+      toBack(layer);
+      return;
     case 'wind':
-      layer = L.geoJSON(feature, { pane: 'stormArea', style: { color, weight: 1, opacity: 0.9, fillColor: color, fillOpacity: 0.18 } });
-      break;
+      layer = L.geoJSON(feature, { style: { color, weight: 1, opacity: 0.9, fillColor: color, fillOpacity: 0.18 } });
+      layer.bindPopup(createStormPopup(props), { maxWidth: 350, maxHeight: 400 });
+      layer.addTo(group);
+      toBack(layer);
+      return;
     case 'track': {
       // A dark casing under a light line keeps the track readable over fills and tiles.
       const latlngs = geom.coordinates.map(c => [c[1], c[0]]);
       layer = L.layerGroup([
-        L.polyline(latlngs, { pane: 'stormTrack', color: '#1a1a2e', weight: 5, opacity: 0.6, lineCap: 'round', interactive: false }),
-        L.polyline(latlngs, { pane: 'stormTrack', color: '#ffffff', weight: 2.5, opacity: 0.95, lineCap: 'round', dashArray: '1 6' })
+        L.polyline(latlngs, { color: '#1a1a2e', weight: 5, opacity: 0.6, lineCap: 'round', interactive: false }),
+        L.polyline(latlngs, { color: '#ffffff', weight: 2.5, opacity: 0.95, lineCap: 'round', dashArray: '1 6' })
       ]);
       layer.eachLayer(l => { if (l.options.interactive !== false) l.bindPopup(createStormPopup(props), { maxWidth: 350 }); });
       layer.addTo(group);
+      toFront(layer);
       return;
     }
     case 'point': {
       const c = geom.coordinates;
-      layer = L.circleMarker([c[1], c[0]], { pane: 'stormTrack', radius: 6, color, weight: 2, fillColor: '#ffffff', fillOpacity: 1 });
+      layer = L.circleMarker([c[1], c[0]], { radius: 6, color, weight: 2, fillColor: '#ffffff', fillOpacity: 1 });
       const label = `${esc(props.letter || '')} ${esc(props.label || '')}`.trim();
       if (label) layer.bindTooltip(label, { permanent: zoom >= 6, direction: 'right', offset: [6, 0], className: 'storm-tooltip', pane: 'tooltipPane' });
-      break;
+      layer.bindPopup(createStormPopup(props), { maxWidth: 350, maxHeight: 400 });
+      layer.addTo(group);
+      toFront(layer);
+      return;
     }
     case 'center': {
       const c = geom.coordinates;
