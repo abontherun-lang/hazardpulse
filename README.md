@@ -38,26 +38,36 @@ docker compose up -d
 
 That's it. No Node.js, no database setup — Docker handles everything.
 
-### Setup
+### Run it
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/abontherun-lang/hazardpulse.git
 cd hazardpulse
-
-# 2. (Optional) Set your contact info for NOAA
-cp .env.example .env
-#    Edit .env and replace your-email@example.com with your email.
-
-# 3. Start the app
+cp .env.example .env        # optional: contact email for NOAA, home pin, port
 docker compose up -d
 ```
 
 Open **http://localhost:3000** in your browser.
 
-`docker compose up` pulls a prebuilt image published by CI on every merge to main — no local build. To build from source instead (e.g. after modifying the code), use `docker compose up -d --build`.
+Nothing is compiled on your machine. `docker compose up -d` downloads the
+image that CI built and tested from the latest commit on `main`
+(`ghcr.io/abontherun-lang/hazardpulse:latest`) and starts it next to a
+PostGIS container.
 
 **First startup takes ~3-5 minutes** — it downloads Census TIGER/Line boundary data for reverse geocoding and fetches initial data from all sources. Subsequent starts are instant (data persists in Docker volumes).
+
+### Build from source
+
+Only needed if you change the code, or run a fork that doesn't publish
+images:
+
+```bash
+docker compose up -d --build
+```
+
+The `build:` entry in `docker-compose.yml` is there for this. It also means
+that if the image tag can't be found in the registry, Compose builds it from
+the Dockerfile instead of failing.
 
 ### Access from other devices on your network
 
@@ -77,14 +87,23 @@ Then open `http://<YOUR_IP>:3000` on any device on the same network.
 
 ```bash
 cd hazardpulse
-git pull
-docker compose pull hazardpulse
-docker compose up -d
+git pull                        # new compose file / docs, if any
+docker compose pull hazardpulse # fetch the newest image — `up` alone keeps the one you have
+docker compose up -d            # restart on it
 ```
 
-Every CI build is also tagged with its commit (`sha-6b6f575`). To pin a
-version, or roll back after a bad update, set `HAZARDPULSE_IMAGE` in `.env`
-to that tag and run `docker compose up -d` again.
+Every CI build is also tagged with its commit (for example `sha-6b6f575`).
+To pin a version, or roll back after a bad update, put that tag in `.env`
+and restart:
+
+```bash
+# .env
+HAZARDPULSE_IMAGE=ghcr.io/abontherun-lang/hazardpulse:sha-6b6f575
+```
+
+```bash
+docker compose up -d
+```
 
 ### Stopping
 
@@ -202,9 +221,9 @@ docker compose logs -f hazardpulse
 ```
 The first startup needs internet access to reach NOAA, USGS, NASA, GDELT, and FEMA APIs. If you're behind a restrictive firewall, those requests may fail.
 
-**Stale data after update:**
+**Still on an old version after `git pull`:**
 ```bash
-docker compose pull hazardpulse
+docker compose pull hazardpulse   # `up` alone does not refresh an image you already have
 docker compose up -d
 ```
 
