@@ -269,7 +269,6 @@ Cron scheduling, caching, PostGIS storage, and reverse geocoding are automatic. 
 
 | File | Description |
 |------|-------------|
-| [AGENTS.md](AGENTS.md) | Working notes for contributors and agents: layout, gotchas, deploy path |
 | [docs/architecture.md](docs/architecture.md) | System design, tech stack, data flow, and schema |
 | [docs/data-sources.md](docs/data-sources.md) | Active and planned data sources with API details |
 | [docs/roadmap.md](docs/roadmap.md) | Development status and future plans |

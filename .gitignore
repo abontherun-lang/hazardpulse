@@ -7,3 +7,5 @@ backend/.env
 .DS_Store
 Thumbs.db
 *.pem
+AGENTS.md
+CLAUDE.md
