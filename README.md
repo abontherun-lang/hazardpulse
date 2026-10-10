@@ -14,7 +14,7 @@ Real-time crisis map for the United States. One command to run. No API keys. No 
 **What you get:**
 - Live interactive map tracking ~1,500 events at a time, refreshed on per-source schedules
 - 9 layer groups you can toggle independently — weather, hurricanes/tropical, earthquakes/tsunami, wildfires, volcanoes, emergency alerts, 911 dispatch, civil/conflict, satellite & radar
-- 6 one-click Quick Views: All, Critical (life-safety only), Weather, Seismic, Fire, Conflict
+- 6 one-click Quick Views: All, Critical (life-safety only), Weather, None (blank slate), Fire, Conflict
 - Satellite fire detections cross-checked against official NIFC incidents — high-intensity or corroborated fires only, not industrial/agricultural thermal noise
 - Surveyed tornado tracks with EF ratings, path length and casualties from the NWS Damage Assessment Toolkit, beside SPC's preliminary reports
 - Time slider to filter by recency, zoom-based filtering, severity-weighted display

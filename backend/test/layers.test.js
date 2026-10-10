@@ -69,7 +69,10 @@ test('presets reference real groups and rows, never types', () => {
     else if (p.groups !== '*') for (const g of p.groups) assert.ok(groups.has(g), `preset ${name}: group "${g}"`);
     else assert.equal(p.groups, '*');
   }
-  for (const name of ['all', 'critical', 'weather', 'seismic', 'fire', 'conflict']) assert.ok(registry.presets[name], `preset ${name}`);
+  for (const name of ['all', 'critical', 'weather', 'none', 'fire', 'conflict']) assert.ok(registry.presets[name], `preset ${name}`);
+  // "none" is the blank slate: no groups, no rows, no satellite.
+  assert.deepEqual(registry.presets.none, { groups: [] });
+  assert.equal(registry.presets.seismic, undefined);
 });
 
 test('colorOf returns the registered color or the fallback', () => {

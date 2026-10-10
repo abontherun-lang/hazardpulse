@@ -782,11 +782,8 @@
         "tropical"
       ]
     },
-    "seismic": {
-      "groups": [
-        "earthquake",
-        "volcano"
-      ]
+    "none": {
+      "groups": []
     },
     "fire": {
       "groups": [
