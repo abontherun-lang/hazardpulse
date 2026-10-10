@@ -7,8 +7,8 @@ pool.query = async () => ({ rows: [], rowCount: 0 });
 const { SOURCES } = require('../server');
 const { has } = require('../layers');
 
-test('ten sources, each with fetch, unique names and prefixes, and a valid cron', () => {
-  assert.equal(SOURCES.length, 10);
+test('eleven sources, each with fetch, unique names and prefixes, and a valid cron', () => {
+  assert.equal(SOURCES.length, 11);
   const names = new Set(), prefixes = new Set();
   for (const s of SOURCES) {
     assert.equal(typeof s.fetch, 'function', s.SOURCE_NAME);

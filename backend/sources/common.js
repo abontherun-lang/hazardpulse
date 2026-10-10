@@ -58,7 +58,8 @@ const TTL = {
   TORNADO: 604800,    // 7 days (matches SPC weekly feed)
   SURVEY: 604800,     // 7 days (DAT surveys; the display window trims to recent edits)
   NIFC: 21600,        // 6 hours (incidents poll hourly; tolerate fetch gaps)
-  VOLCANO: 7200       // 2 hours (alert levels change slowly)
+  VOLCANO: 7200,      // 2 hours (alert levels change slowly)
+  NHC: 32400          // 9 hours (advisories every 6 h; a dissipated storm expires on its own)
 };
 
 // Rolling display window: the API only serves events whose event_time falls

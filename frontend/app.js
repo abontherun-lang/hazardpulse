@@ -19,6 +19,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
+// NHC storm products get their own panes so the stacking order is fixed:
+// cone + wind field under the NWS warning fills (overlayPane is 400), the
+// forecast track above them, the center glyph above every marker (600)
+// but under tooltips (650).
+map.createPane('stormArea').style.zIndex = 390;
+map.createPane('stormTrack').style.zIndex = 450;
+map.createPane('stormCenter').style.zIndex = 640;
+
 // ===================== LAYER REGISTRY =====================
 // Groups, legend rows, colors, cluster flags and presets come from
 // /api/layers (backend/layers.json). Nothing about a layer is hardcoded here.
@@ -336,11 +344,15 @@ function buildLayers() {
   const zoom = map.getZoom();
   DATA_TYPES.forEach(type => getLayerGroup(type).clearLayers());
 
+  // NHC products draw in a fixed order (cone, rings outer→inner, track,
+  // points, center) so the inner ring and the glyph land on top.
+  const storms = [];
   for (const feature of allData.features) {
     try {
       if (!passesTimeFilter(feature)) continue;
       if (!passesZoomFilter(feature, zoom)) continue;
       const source = feature.properties.source;
+      if (source === 'NHC') { storms.push(feature); continue; }
       if (source === '911 Dispatch') buildDispatchMarker(feature);
       else if (source === 'GDELT') buildGdeltMarker(feature);
       else if (source === 'NASA FIRMS') buildFireMarker(feature);
@@ -355,6 +367,7 @@ function buildLayers() {
       console.warn('Skipping bad feature:', e.message, feature?.id);
     }
   }
+  buildStormLayers(storms, zoom);
 }
 
 // Rebuild markers only when zoom crosses a filter threshold
@@ -576,6 +589,162 @@ function buildSurveyTrack(feature) {
   layer.addTo(group);
 }
 
+// ===================== NHC STORMS =====================
+// One storm is several features sharing props.stormId: a center point, a
+// forecast cone + track + points (one legend row) and 34/50/64 kt wind
+// rings (another). Draw order comes from STORM_ORDER, not arrival order.
+
+const STORM_ORDER = { cone: 0, wind: 1, track: 2, point: 3, center: 4 };
+
+// Status counts: a storm is one center, one cone, one wind field — not
+// seven forecast features and three rings.
+function isCountedStormFeature(props) {
+  const p = props.product;
+  return p === 'center' || p === 'cone' || (p === 'wind' && Number(props.radii) === 34);
+}
+
+function stormGlyphHtml(props) {
+  const color = safeColor(props.color, TYPE_COLORS['Tropical Cyclone'] || '#FFB300');
+  const spinning = Number(props.category_ss) >= 1 || /Storm/.test(props.status || '');
+  const filled = Number(props.category_ss) >= 1;
+  // The tropical cyclone symbol: a disc with two trailing arms. Rotation is
+  // counter-clockwise, as in the northern hemisphere.
+  return `<div class="storm-glyph${spinning ? ' storm-spin' : ''}" style="color:${color}">
+    <svg viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+      <path class="storm-arm" d="M20 3 C31 3 37 10 37 20 L31 20 C31 13 27 9 20 9 Z"/>
+      <path class="storm-arm" d="M20 37 C9 37 3 30 3 20 L9 20 C9 27 13 31 20 31 Z"/>
+      <circle cx="20" cy="20" r="8" class="storm-eye${filled ? ' storm-eye-filled' : ''}"/>
+    </svg>
+  </div><div class="storm-tag" style="background:${color}">${esc(props.tag || 'TC')}</div>`;
+}
+
+function buildStormLayers(features, zoom) {
+  if (!features.length) return;
+  features.sort((a, b) => {
+    const pa = a.properties, pb = b.properties;
+    const d = (STORM_ORDER[pa.product] ?? 9) - (STORM_ORDER[pb.product] ?? 9);
+    if (d) return d;
+    if (pa.product === 'wind') return (Number(pa.radii) || 0) - (Number(pb.radii) || 0); // 34 under 64
+    if (pa.product === 'point') return (Number(pa.tau) || 0) - (Number(pb.tau) || 0);
+    return 0;
+  });
+  for (const feature of features) {
+    try { buildStormFeature(feature, zoom); } catch (e) { console.warn('Skipping bad storm feature:', e.message, feature?.id); }
+  }
+}
+
+function buildStormFeature(feature, zoom) {
+  const props = feature.properties;
+  const group = layerGroups[props.category];
+  const geom = feature.geometry;
+  if (!group || !geom) return;
+  const color = safeColor(props.color, TYPE_COLORS[props.category] || '#808080');
+  let layer;
+
+  switch (props.product) {
+    case 'cone':
+      layer = L.geoJSON(feature, { pane: 'stormArea', style: { color, weight: 1.5, opacity: 0.8, fillColor: color, fillOpacity: 0.12 } });
+      break;
+    case 'wind':
+      layer = L.geoJSON(feature, { pane: 'stormArea', style: { color, weight: 1, opacity: 0.9, fillColor: color, fillOpacity: 0.18 } });
+      break;
+    case 'track': {
+      // A dark casing under a light line keeps the track readable over fills and tiles.
+      const latlngs = geom.coordinates.map(c => [c[1], c[0]]);
+      layer = L.layerGroup([
+        L.polyline(latlngs, { pane: 'stormTrack', color: '#1a1a2e', weight: 5, opacity: 0.6, lineCap: 'round', interactive: false }),
+        L.polyline(latlngs, { pane: 'stormTrack', color: '#ffffff', weight: 2.5, opacity: 0.95, lineCap: 'round', dashArray: '1 6' })
+      ]);
+      layer.eachLayer(l => { if (l.options.interactive !== false) l.bindPopup(createStormPopup(props), { maxWidth: 350 }); });
+      layer.addTo(group);
+      return;
+    }
+    case 'point': {
+      const c = geom.coordinates;
+      layer = L.circleMarker([c[1], c[0]], { pane: 'stormTrack', radius: 6, color, weight: 2, fillColor: '#ffffff', fillOpacity: 1 });
+      const label = `${esc(props.letter || '')} ${esc(props.label || '')}`.trim();
+      if (label) layer.bindTooltip(label, { permanent: zoom >= 6, direction: 'right', offset: [6, 0], className: 'storm-tooltip', pane: 'tooltipPane' });
+      break;
+    }
+    case 'center': {
+      const c = geom.coordinates;
+      layer = L.marker([c[1], c[0]], {
+        pane: 'stormCenter',
+        icon: L.divIcon({ className: 'storm-icon', html: stormGlyphHtml(props), iconSize: [38, 52], iconAnchor: [19, 19], popupAnchor: [0, -16] })
+      });
+      break;
+    }
+    default:
+      return;
+  }
+  layer.bindPopup(createStormPopup(props), { maxWidth: 350, maxHeight: 400 });
+  layer.addTo(group);
+}
+
+function createStormPopup(props) {
+  const color = safeColor(props.color, '#FFB300');
+  const n = v => (v === null || v === undefined || v === '') ? null : v;
+  const issued = props.issued || (props.timestamp ? new Date(props.timestamp).toLocaleString() : null);
+  let badge, title, rows = [];
+  switch (props.product) {
+    case 'center':
+      badge = props.status || 'Tropical Cyclone';
+      title = props.headline;
+      rows = [
+        ['Max sustained winds', n(props.windMph) !== null ? `${props.windMph} mph (${props.windKt} kt)` : null],
+        ['Pressure', n(props.pressureMb) !== null ? `${props.pressureMb} mb` : null],
+        ['Movement', props.moveDir ? `${props.moveDir} at ${props.moveMph ?? '?'} mph` : null],
+        ['Advisory', props.advisory ? `#${props.advisory}, ${issued}` : issued]
+      ];
+      break;
+    case 'cone':
+      badge = 'NHC Forecast Cone';
+      title = `${props.stormName} — ${props.hours || 120} h cone`;
+      rows = [['Advisory', props.advisory ? `#${props.advisory}, ${issued}` : issued]];
+      break;
+    case 'track':
+      badge = 'NHC Forecast Track';
+      title = `${props.stormName} — forecast track`;
+      rows = [['Advisory', props.advisory ? `#${props.advisory}, ${issued}` : issued]];
+      break;
+    case 'point':
+      badge = 'NHC Forecast Position';
+      title = `${props.stormName} — +${props.tau} h`;
+      rows = [
+        ['Valid', props.label],
+        ['Forecast status', props.status],
+        ['Winds', n(props.windMph) !== null ? `${props.windMph} mph${n(props.gustMph) !== null ? `, gusts ${props.gustMph} mph` : ''}` : null],
+        ['Advisory', props.advisory ? `#${props.advisory}` : null]
+      ];
+      break;
+    case 'wind': {
+      badge = `${props.radii} kt wind field`;
+      title = `${props.stormName} — winds ≥ ${props.radiiMph} mph`;
+      const q = props.quadrantsNm || {};
+      rows = [
+        ['Extent (nm)', ['ne', 'se', 'sw', 'nw'].some(k => n(q[k]) !== null) ? `NE ${q.ne ?? '?'} · SE ${q.se ?? '?'} · SW ${q.sw ?? '?'} · NW ${q.nw ?? '?'}` : null],
+        ['Advisory', props.advisory ? `#${props.advisory}, ${issued}` : issued]
+      ];
+      break;
+    }
+    default:
+      badge = 'NHC';
+      title = props.headline;
+  }
+  rows = rows.filter(([, v]) => v !== null && v !== undefined && v !== '');
+  const links = [];
+  if (props.sourceUrl) links.push(`<a href="${esc(props.sourceUrl)}" target="_blank" rel="noopener">${props.product === 'center' ? 'Public advisory' : 'NHC graphics'}</a>`);
+  if (props.graphicsUrl) links.push(`<a href="${esc(props.graphicsUrl)}" target="_blank" rel="noopener">Graphics</a>`);
+  return `<div>
+    <div class="alert-badge" style="background-color: ${color};">${esc(badge)}</div>
+    <h3>${esc(title || props.stormName || 'Tropical cyclone')}</h3>
+    ${rows.map(([k, v]) => `<p><strong>${esc(k)}:</strong> ${esc(v)}</p>`).join('')}
+    ${props.description && props.product !== 'center' ? `<p style="font-size:0.85rem;margin-top:0.5rem;">${esc(props.description.substring(0, 300))}</p>` : ''}
+    ${links.length ? `<p>${links.join(' · ')}</p>` : ''}
+    ${props.scannerUrl ? `<p class="scanner-link"><a href="${esc(props.scannerUrl)}" target="_blank" rel="noopener">&#x266B; Listen to area scanners</a></p>` : ''}
+  </div>`;
+}
+
 // ===================== POPUPS =====================
 
 function popupFooter(props) {
@@ -784,6 +953,7 @@ function _recomputeCounts() {
 
     const type = feature.properties.category || feature.properties.event;
     if (!type || !enabledTypes.has(type)) continue;
+    if (feature.properties.source === 'NHC' && !isCountedStormFeature(feature.properties)) continue;
 
     const latlng = featureLatLng(feature);
     if (!latlng || !bounds.contains(latlng)) continue;
