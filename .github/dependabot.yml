@@ -1,0 +1,27 @@
+# Weekly dependency updates, grouped so a routine week is one PR per
+# ecosystem. CI runs on every PR (tests + image build), so a green check is
+# the review.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
