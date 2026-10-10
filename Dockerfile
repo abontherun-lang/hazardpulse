@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:25-alpine
 
 # PostGIS client tools (shp2pgsql + psql) for the TIGER/Line import
 RUN apk add --no-cache postgis
