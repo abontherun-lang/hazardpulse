@@ -1,6 +1,7 @@
-# Weekly dependency updates, grouped so a routine week is one PR per
-# ecosystem. CI runs on every PR (tests + image build), so a green check is
-# the review.
+# Weekly dependency updates. Minor and patch bumps arrive grouped (one PR per
+# ecosystem, CI-tested); a major bump always gets its own PR so it can be
+# reviewed and staged on its own — Express 5 must never ride in with four
+# patch bumps. CI runs on every PR (tests + image build).
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,19 +10,27 @@ updates:
       interval: weekly
       day: monday
     groups:
-      npm:
+      npm-minor-patch:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
     groups:
-      actions:
+      actions-minor-patch:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      # Stay on the LTS line (even majors). Move to the next LTS by hand.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
