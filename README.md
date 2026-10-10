@@ -82,6 +82,10 @@ docker compose pull hazardpulse
 docker compose up -d
 ```
 
+Every CI build is also tagged with its commit (`sha-6b6f575`). To pin a
+version, or roll back after a bad update, set `HAZARDPULSE_IMAGE` in `.env`
+to that tag and run `docker compose up -d` again.
+
 ### Stopping
 
 ```bash
@@ -135,6 +139,7 @@ cp .env.example .env
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3000` | Host port for the web UI and API |
+| `HAZARDPULSE_IMAGE` | `…/hazardpulse:latest` | Image to run; set to a `sha-<commit>` tag to pin or roll back |
 | `USER_AGENT` | `HazardPulse/1.0, your-email@example.com` | NOAA contact info (recommended) |
 | `DISPLAY_WINDOW_HOURS` | `72` | Rolling window of events shown on the map |
 | `HOME_LAT` / `HOME_LON` / `HOME_LABEL` | *(auto)* | Home-base pin; defaults to server IP geolocation |
