@@ -121,6 +121,7 @@ Text is stored raw. The frontend's `esc()` is the only place it is escaped.
 | `nifc.js` | NIFC/WFIGS incidents (ArcGIS) | hourly :15 | Active wildland fires, sized by acreage |
 | `spc.js` | SPC tornado reports (ArcGIS) | 15 min | Preliminary local storm reports, unrated; id = time + place |
 | `dat.js` | NWS Damage Assessment Toolkit (ArcGIS) | hourly :30 | Surveyed tornado tracks with EF rating; storm date within 14 days |
+| `nhc.js` | NHC CurrentStorms index + NHC_tropical_weather ArcGIS (GeoJSON) | 15 min | Storm center, forecast points/track/cone, advisory wind field; products checked against the storm id |
 | `volcano.js` | USGS Volcano Hazards | hourly | Elevated alert levels only |
 | `gdelt.js` | GDELT v2 exports (15-min zips) | 15 min | CAMEO filter, NumArticles ≥ 3, country code, TIGER prune |
 | `fema.js` | FEMA IPAWS archive | 15 min | NWS-sent messages skipped; local authorities kept |
