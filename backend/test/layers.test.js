@@ -8,6 +8,7 @@ const { registry, TYPES, colorOf, has, legendTypes } = require('../layers');
 // renders nowhere and toggles nothing. Keep in sync with the sources.
 const SOURCE_CATEGORIES = [
   'Earthquake', 'Wildfire', 'Wildfire Incident', 'Volcano', 'Tornado Report', 'Tornado Damage Survey',
+  'Tropical Cyclone', 'Tropical Cyclone Forecast', 'Tropical Cyclone Wind Field',
   'Protest', 'Armed Violence', 'Use of Force',
   'Official Alerts', 'Missing Persons',
   'Dispatch Fire', 'Dispatch Violence', 'Dispatch Accident', 'Dispatch Hazmat'

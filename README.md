@@ -9,7 +9,7 @@ Real-time crisis map for the United States. One command to run. No API keys. No 
 
 ![HazardPulse Demo](docs/assets/demo.gif)
 
-**10 polled data sources** — NOAA weather alerts, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, SPC preliminary tornado reports, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
+**11 polled data sources** — NOAA weather alerts, NHC hurricane tracks and cones, USGS earthquakes, NASA satellite wildfire detections, NIFC named fire incidents, SPC preliminary tornado reports, NWS tornado damage surveys, USGS volcano alerts, GDELT conflict events, FEMA emergency alerts, and 911 dispatch feeds — plus live GOES satellite imagery and precipitation radar. All free, all updating automatically.
 
 **What you get:**
 - Live interactive map tracking ~1,500 events at a time, refreshed on per-source schedules
@@ -101,6 +101,7 @@ docker compose down -v       # Stop and clear all data (TIGER reloads on next st
 | NIFC | Named wildfire incidents with acreage and containment | Hourly | Free |
 | NWS SPC | Preliminary tornado reports (local storm reports, unrated) | 15 min | Free |
 | NWS DAT | Surveyed tornado tracks with EF rating, path, injuries and fatalities | Hourly | Free |
+| NHC | Active tropical cyclones: center by category, 5-day forecast track and cone, 34/50/64 kt wind field | 15 min | Free |
 | USGS Volcano API | Volcano alert levels (elevated only) | Hourly | Free |
 | GDELT Project | Armed violence, protests, use of force (news-derived) | 15 min | Free |
 | FEMA IPAWS | Local-authority alerts: evacuations, law enforcement, AMBER/Silver (NWS-sent messages skipped, the NOAA feed has them) | 15 min | Free |
@@ -238,6 +239,7 @@ hazardpulse/
 │       ├── nifc.js            NIFC named wildfire incidents
 │       ├── spc.js             SPC preliminary tornado reports
 │       ├── dat.js             NWS DAT surveyed tornado tracks (EF ratings)
+│       ├── nhc.js             NHC storm center, forecast track/cone, wind field
 │       ├── volcano.js         USGS volcano alert levels
 │       ├── gdelt.js           GDELT conflict/unrest
 │       ├── fema.js            FEMA IPAWS emergency alerts

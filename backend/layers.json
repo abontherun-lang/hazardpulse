@@ -144,8 +144,29 @@
     {
       "key": "tropical",
       "label": "Hurricanes / Tropical",
-      "hint": "Active during hurricane season (Jun-Nov)",
+      "hint": "NHC storm products (center, 5-day cone, wind field) plus NWS warnings; Jun-Nov",
       "rows": [
+        {
+          "id": "active-storms",
+          "label": "Active Storms (NHC)",
+          "types": [
+            "Tropical Cyclone"
+          ]
+        },
+        {
+          "id": "storm-forecast",
+          "label": "Forecast Track & Cone",
+          "types": [
+            "Tropical Cyclone Forecast"
+          ]
+        },
+        {
+          "id": "storm-wind-field",
+          "label": "Wind Field (34/50/64 kt)",
+          "types": [
+            "Tropical Cyclone Wind Field"
+          ]
+        },
         {
           "id": "hurricane-warning",
           "label": "Hurricane Warning",
@@ -390,7 +411,7 @@
     {
       "key": "conflict",
       "label": "Conflict & Unrest",
-      "hint": "GDELT — news-derived, multi-source confirmed",
+      "hint": "GDELT \u2014 news-derived, multi-source confirmed",
       "rows": [
         {
           "id": "protests",
@@ -457,6 +478,18 @@
     "Wind Advisory": {
       "color": "#607D8B",
       "style": "dashed"
+    },
+    "Tropical Cyclone": {
+      "color": "#FFB300",
+      "style": "dot"
+    },
+    "Tropical Cyclone Forecast": {
+      "color": "#546E7A",
+      "style": "fill"
+    },
+    "Tropical Cyclone Wind Field": {
+      "color": "#FB8C00",
+      "style": "fill"
     },
     "Hurricane Warning": {
       "color": "#006064",
@@ -775,6 +808,8 @@
         "flash-flood-warning",
         "extreme-heat-warning",
         "extreme-wind-warning",
+        "active-storms",
+        "storm-forecast",
         "hurricane-warning",
         "storm-surge-warning",
         "tsunami-warning",
